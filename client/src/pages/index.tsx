@@ -28,8 +28,8 @@ export default () => {
       <ol className={styles.list}>
         <li><Button onClick={() => handleTest('GET', '/api/test/page')} type="primary">点击</Button>测试下请求:GET普通返回</li>
         <li><Button onClick={() => handleTest('GET', '/api/test/getQueryParam', {name: '这是个测试', param: '请求参数'})} type="primary">点击</Button>测试下请求:GET有传参数</li>
-        <li><Button onClick={() => handleTest('GET', '/api/user/info', {name: '这是个测试'})} type="primary">点击</Button>测试下请求:与数据库绑定</li>
-        <li><Button onClick={() => handleTest('POST', '/api/user/login', {name: 'admin', password: '123456'})} type="primary">点击</Button>测试下请求: POST 与数据库绑定</li>
+        <li><Button onClick={() =>  handleTest('POST', '/api/test/getPerson', {username: 'admin'})}  type="primary">点击</Button>测试下请求:与数据库绑定(测试下获取用户信息)</li>
+        <li><Button onClick={() =>  handleTest('POST', '/api/test/addPerson', {username: 'admin', password: '123456'})}  type="primary">点击</Button>测试下请求: POST 与数据库绑定(新增信息息)</li>
         <li><Button onClick={handleNode} type="primary">点击</Button>让koa服务触发本地node相关事件</li>
       </ol>
       <h1 className={styles.title}>二、规划点</h1>
@@ -40,6 +40,11 @@ export default () => {
         <li> ④前端发出请求后KOA服务触发某些事件，如方案一”node命令行“操作（涉及安装包、打包、发布等），方案二：考虑docker如何使用</li>
         <li>⑤是否做到导入项目内的route.config.js，进行调整并保存到数据库，然后汇总节点数据，在第②点中，可针对性的选择打包对应的菜单</li>
       </ul>
+      <h1 className={styles.title}>一、获取用户信息</h1>
+      <ol className={styles.list}>
+        <li><Button onClick={() => handleTest('POST', '/api/user/getPerson', {username: 'admin'})} type="primary">点击</Button>测试下获取用户信息</li>
+        <li><Button onClick={() => handleTest('POST', '/api/user/addPerson', {username: 'admin', password: '123456'})} type="primary">点击</Button>新增用户信息 </li>
+      </ol>
     </div>
   );
 }
