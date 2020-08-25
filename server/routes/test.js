@@ -1,5 +1,6 @@
 const Router = require('koa-router')
-const TestModel = require('../models/test.js')
+const TestModelBefore = require('../models/testBefore.js') // 常规模式
+const TestModel = require('../models/test.js') // 类继承
 const router = new Router()
 /**
  * 实际接口 /page => /api/test/page
@@ -50,7 +51,7 @@ router.post('/addPerson', async function (ctx) {
   //创建这个模型的实例啦
   const reqParams = ctx.request.body
   console.log(reqParams)
-  const person = new TestModel({
+  const person = new TestModelBefore({
     //通过post请求得到的body里的数据，添加到数据库
     // username: ctx.request.body.username,
     // password: ctx.request.body.password
@@ -78,11 +79,11 @@ router.post('/addPerson', async function (ctx) {
 })
 
 router.post('/getPerson', async function (ctx) {
-  const result = await TestModel.findOne({ username: ctx.request.body.username }, 'username age -_id') // 查询单个用户信息  // -_id 表示不返回_id字段
-  const results = await TestModel.find() // 查询所有信息
-  const resultPage = await TestModel.find({}, {}, { skip: 2, limit: 2 })  // 分页（跳过前两个文档，且只显示两个文档）
+  const result = await TestModelBefore.findOne({ username: ctx.request.body.username }, 'username age -_id') // 查询单个用户信息  // -_id 表示不返回_id字段
+  const results = await TestModelBefore.find() // 查询所有信息
+  const resultPage = await TestModelBefore.find({}, {}, { skip: 2, limit: 2 })  // 分页（跳过前两个文档，且只显示两个文档）
   // 使用 aggregate 聚合管道,将筛选出来的字段进行重写
-  const resultAggregate = await TestModel.aggregate([
+  const resultAggregate = await TestModelBefore.aggregate([
       { $match: { username: ctx.request.body.username } }, // 匹配条件
       {
         $project: {
@@ -108,5 +109,7 @@ router.post('/getPerson', async function (ctx) {
     resultAggregate,
   }
 })
+
+// 执行命令
 
 module.exports = router.routes()
