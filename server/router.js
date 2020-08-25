@@ -1,4 +1,5 @@
 const Router = require('koa-router')
+const { createAction } = require('./utils/commons.js');
 /*
 // 方式一：
 const test = require('./routes/test'); // 测试用
@@ -9,12 +10,13 @@ const router = new Router({
 router.use('/test', test);
 router.use('/user', user);
 */
+// 方式二
 const testController = require('./controllers/test.js');
 const router = new Router()
 
 let INTERFACE_CONFIG = {
   test: {
-    prefix: '/test/',
+    prefix: '/test/', // API前缀
     controller: testController
   },
 }
@@ -48,34 +50,6 @@ let routerConfig = {
   ]
 }
 
-/**
- *
- * @param {*} router router
- * @param {*} baseurl 前缀目录base_url_path
- * @param {*} routerController controller
- * @param {*} path  routerPath
- * @param {*} method request_method , post get put delete ...
- * @param {*} action controller 方法名
- * @param {*} ws enable ws
- *
- * @example
- */
-const createAction = (router, baseurl, routerController, action, path, method, ws) => {
-  router[method](baseurl + path, async ctx => {
-    let inst = new routerController(ctx); // 创建实例
-    try {
-      await inst.init(ctx); // 初始化（执行controller/base内的init
-      ctx.params = Object.assign({}, ctx.request.query, ctx.request.body, ctx.params);
-      await inst[action].call(inst, ctx); // 执行controller内的方法，如controller/test.js内的 testGet()
-    } catch (err) {
-      ctx.body = {
-        code: 40011,
-        msg: '服务出错'
-      }
-      console.log(err, 'error');
-    }
-  });
-}
 
 
 for (let ctrl in routerConfig) {

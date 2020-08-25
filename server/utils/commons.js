@@ -266,30 +266,25 @@ exports.handleParams = (params, keys) => {
 };
 
 /**
- * @description 创建model实例，用于router.js
  *
  * @param {*} router router
- * @param {*} baseurl base_url_path
+ * @param {*} baseurl 前缀目录base_url_path
  * @param {*} routerController controller
  * @param {*} path  routerPath
  * @param {*} method request_method , post get put delete ...
- * @param {*} action controller action_name
+ * @param {*} action controller 方法名
  * @param {*} ws enable ws
+ *
+ * @example
  */
 exports.createAction = (router, baseurl, routerController, action, path, method, ws) => {
   router[method](baseurl + path, async ctx => {
-    let inst = new routerController(ctx);
+    let inst = new routerController(ctx); // 创建实例
     try {
-      await inst.init(ctx);
-      ctx.params = Object.assign({}, ctx.request.query, ctx.request.body, ctx.params);
-      if (inst.schemaMap && typeof inst.schemaMap === 'object' && inst.schemaMap[action]) {
-
-        let validResult = tools.commons.validateParams(inst.schemaMap[action], ctx.params);
-
-        if (!validResult.valid) {
-          return (ctx.body = tools.commons.resReturn(null, 400, validResult.message));
-        }
-      }
+      await inst.init(ctx); // 初始化（执行controller/base内的init
+      ctx.params = Object.assign({}, ctx.request.query, ctx.request.body, ctx.params); // 拼合query,body,还有params
+      await inst[action].call(inst, ctx); // 执行controller内的方法，如controller/test.js内的 testGet()
+  /*    // 判断 是否登录
       if (inst.$auth === true) {
         await inst[action].call(inst, ctx);
       } else {
@@ -298,13 +293,16 @@ exports.createAction = (router, baseurl, routerController, action, path, method,
         } else {
           ctx.body = tools.commons.resReturn(null, 40011, '请登录...');
         }
-      }
+      } */
     } catch (err) {
-      ctx.body = tools.commons.resReturn(null, 40011, '服务器出错...');
-      tools.commons.log(err, 'error');
+      ctx.body = {
+        code: 40011,
+        msg: '服务出错'
+      }
+      console.log(err, 'error');
     }
   });
-};
+}
 
 /*
 
