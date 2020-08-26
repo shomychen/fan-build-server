@@ -1,0 +1,40 @@
+@import '~antd/lib/style/themes/default.less';
+
+.dashboard {
+  padding: @padding-lg;
+  .header {
+    display: flex;
+    margin-bottom: @padding-lg;
+    .title {
+      flex: 1;
+    }
+  }
+}
+
+.projectList {
+  .item {
+    //padding
+    &:hover {
+      :global {
+        .ant-card {
+          background-color: #383847;
+        }
+        .ant-card-body {
+          cursor: pointer;
+        }
+      }
+    }
+    .title {
+      font-size: @font-size-lg;
+      color: #ffffff;
+    }
+    .subTitle {
+      font-size: @font-size-base -2px;
+    }
+    :global {
+      .ant-card .ant-card-actions {
+        background-color: inherit;
+      }
+    }
+  }
+}

@@ -1,0 +1,56 @@
+@import '~antd/lib/style/themes/default.less';
+
+@project-side-width: 180px;
+.project {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.projectSide {
+  position: absolute;
+  top:0;
+  left:0;
+  width: @project-side-width;
+  height: 100%;
+  background: #23232e;
+  z-index: 1;
+  border-right: 1px solid #000;
+  .trigger {
+    padding: @padding-md;
+    cursor: pointer;
+    &:hover {
+      //background: ;a
+      background: hsla(0,0%,100%,.02);
+    }
+    &.active {
+      //background: ;a
+      background: hsla(0,0%,100%,.05);
+    }
+    .title {
+      color: #fff;
+      font-size: @font-size-base;
+    }
+    .description {
+      font-size: @font-size-sm;
+    }
+  }
+}
+.projectContent {
+  margin-left: @project-side-width + 20px;
+  padding: @padding-md 0;
+  width: calc(100% - @project-side-width - 20px);
+  height: 100%;
+}
+
+
+.codeColumn {
+  .headerBar {
+    font-size: @font-size-lg;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 24px;
+    margin-bottom:  @padding-sm;
+  }
+  .actionBar {
+    margin-bottom: @padding-sm;
+  }
+}

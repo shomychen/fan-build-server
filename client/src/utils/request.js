@@ -116,7 +116,7 @@ request.interceptors.response.use(async (response) => {
   } else {
     if (response.status === 200) {
       const data = await response.clone().json();
-      if (data.code === 401) {
+/*      if (data.code === 401) {
         if (window.g_app._store && !window.g_app._store.getState().login.isLoseToken) {
           // 判断只提示一个token失效
           window.g_app._store.dispatch({
@@ -130,6 +130,9 @@ request.interceptors.response.use(async (response) => {
           type: 'login/logout'
         });
       } else if (data.code !== 200) {
+        message.error(data.msg);
+      }*/
+      if (data.code !== 200) {
         message.error(data.msg);
       }
     }
