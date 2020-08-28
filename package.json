@@ -17,7 +17,14 @@
   "author": "shomychen",
   "license": "ISC",
   "dependencies": {
+    "@types/sockjs": "^0.3.32",
+    "@types/sockjs-client": "^1.1.1",
+    "@umijs/plugin-esbuild": "^1.0.1",
+    "binary-mirror-config": "^1.27.0",
+    "chalk": "^4.1.0",
     "child_process": "^1.0.2",
+    "cross-spawn": "^7.0.3",
+    "fs": "^0.0.1-security",
     "fs-extra": "^9.0.1",
     "koa": "^2.13.0",
     "koa-bodyparser": "^4.3.0",
@@ -25,6 +32,8 @@
     "mongodb": "^3.6.0",
     "mongoose": "^5.10.0",
     "path": "^0.12.7",
-    "sha1": "^1.1.1"
+    "process": "^0.11.10",
+    "sha1": "^1.1.1",
+    "sockjs": "^0.3.21"
   }
 }

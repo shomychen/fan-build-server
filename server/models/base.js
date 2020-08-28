@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const commons = require('../utils/commons')
 
 /**
  * 所有的model都需要继承baseModel, 且需要 getSchema和getName方法，不然会报错
@@ -6,8 +7,8 @@ const mongoose = require('mongoose');
 
 class baseModel {
   constructor() {
-    this.schema = new mongoose.Schema(this.getSchema()); // 声明模式类型
     this.name = this.getName();
+    this.schema = new mongoose.Schema(this.getSchema(), { collection: commons.toLowerLine(this.name) }); // 声明模式类型 collection: this.name 可解决mongoose默认创建模式名称为复数
 
     this.model = mongoose.model(this.name, this.schema)
   }

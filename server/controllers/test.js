@@ -32,10 +32,10 @@ class testController extends baseController {
     try {
       let params = ctx.params;
       const { username } = params // ctx.request.body;
-      if (!username) return (ctx.body = tools.commons.resReturn(null, 401, '用户名不能为空'));
+      if (!username) return (ctx.body = tools.commons.resReturn(null, 400, '用户名不能为空'));
       let checkRepeat = await this.Model.checkNameRepeat(username);
       if (checkRepeat > 0) {
-        return (ctx.body = tools.commons.resReturn(null, 401, '已存在的用户名'));
+        return (ctx.body = tools.commons.resReturn(null, 400, '已存在的用户名'));
       }
 
       let data = {
@@ -56,7 +56,7 @@ class testController extends baseController {
     try {
       let params = ctx.params;
       const { id } = params
-      if (!id) return (ctx.body = tools.commons.resReturn(null, 401, 'ID不能为空'));
+      if (!id) return (ctx.body = tools.commons.resReturn(null, 400, 'ID不能为空'));
       let data = {
         ...params,
         update_time: tools.commons.time(),
@@ -64,7 +64,7 @@ class testController extends baseController {
       await this.Model.update(id, data); // 更新数据
       ctx.body = tools.commons.resReturn({});
     } catch (err) {
-      ctx.body = tools.commons.resReturn(null, 402, err.message);
+      ctx.body = tools.commons.resReturn(null, 400, err.message);
     }
   }
 

@@ -12,12 +12,17 @@ router.use('/user', user);
 */
 // 方式二
 const testController = require('./controllers/test.js');
+const ciController = require('./controllers/ci.js');
 const router = new Router()
 
 let INTERFACE_CONFIG = {
   test: {
     prefix: '/test/', // API前缀
     controller: testController
+  },
+  ci: {
+    prefix: '/ci/', // API前缀
+    controller: ciController
   },
 }
 let routerConfig = {
@@ -46,6 +51,23 @@ let routerConfig = {
       action: 'deleteById',
       path: 'delete',
       method: 'post'
+    },
+  ],
+  ci: [
+    {
+      action: 'checkNode', // 指controller内的方法
+      path: 'check', // 指请求API 的 path
+      method: 'post'
+    },
+    {
+      action: 'callTest', // 指controller内的方法
+      path: 'call/test', // 指请求API 的 path
+      method: 'get'
+    },
+    {
+      action: 'changePath', // 指controller内的方法
+      path: 'change/path', // 指请求API 的 path
+      method: 'get'
     },
   ]
 }

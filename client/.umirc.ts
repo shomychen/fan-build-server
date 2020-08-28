@@ -1,10 +1,25 @@
 import {defineConfig, utils} from 'umi';
 import {dark} from '@umijs/ui-theme';
 import LessThemePlugin from 'webpack-less-theme-plugin';
-import {join} from "path";
+import { join, parse } from "path";
 const {winPath} = utils;
 
+const {NODE_ENV} = process.env;
+const externalCSS = ['xterm/css/xterm.css'];
+const externalJS = [
+  `react/umd/react.${NODE_ENV === 'production' ? 'production.min' : 'development'}.js`,
+  `react-dom/umd/react-dom.${NODE_ENV === 'production' ? 'production.min' : 'development'}.js`,
+  'moment/min/moment.min.js',
+  'antd/dist/antd.min.js',
+  'sockjs-client/dist/sockjs.min.js',
+  'xterm/lib/xterm.js',
+];
+
+const publicPath = NODE_ENV === 'development' ? 'http://localhost:8002/' : '/'; // 开发环境用 / 会无法识别文件
+
 export default defineConfig({
+  // presets: ['@umijs/preset-react'],
+  // plugins: ['@umijs/plugin-esbuild'],
   nodeModulesTransform: {
     type: 'none',
   },
@@ -29,7 +44,7 @@ export default defineConfig({
       routes: [
         {
           path: '/',
-          title: '项目',
+          title: '项目管理',
           component: '@/pages/Dashboard'
         },
         {
@@ -39,7 +54,7 @@ export default defineConfig({
         },
         {
           path: '/project/:id',
-          title: '任务',
+          title: '任务管理',
           hideInMenu: true,
           component: '@/pages/Project',
         },
@@ -90,6 +105,27 @@ export default defineConfig({
     );
     return config;
   },
+  links: [
+    ...externalCSS.map(external => ({
+      rel: 'stylesheet',
+      href: `${publicPath}${parse(external).base}`,
+    })),
+  ],
+  headScripts: [
+    // polyfill
+    ...externalJS.map(external => ({
+      src: `${publicPath}${parse(external).base}`,
+      crossOrigin: 'anonymous',
+    })),
+  ],
+  externals: {
+    react: 'window.React',
+    'react-dom': 'window.ReactDOM',
+    antd: 'window.antd',
+    xterm: 'window.Terminal',
+    moment: 'moment',
+  },
+  antd: {},
   theme: dark,
   proxy: {
     '/api': {

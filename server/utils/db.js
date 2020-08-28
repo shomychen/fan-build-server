@@ -9,7 +9,7 @@ let options = {useNewUrlParser: true, useCreateIndex: true, useUnifiedTopology: 
 mongoose.connect(connectString,options)
 
 mongoose.connection.on('connected',function() {
-  console.log('连接成功，Mongoose connection open to '+connectString);
+  console.log('数据库连接成功，Mongoose connection open to '+connectString);
 });
 /**
  * 连接异常 error 数据库连接错误

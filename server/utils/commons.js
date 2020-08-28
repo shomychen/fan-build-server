@@ -26,13 +26,14 @@ const sha1 = require('sha1'); // 密码加密
 * @param {Number} num 返回状态值
 * @params {string} errmsg 返回提示语
 * */
-exports.resReturn = (data, codeNum, errmsg) => {
+exports.resReturn = (data, codeNum, errmsg, ...other) => {
   codeNum = codeNum || 0;
 
   return {
     code: codeNum,
     msg: errmsg || '操作成功！',
-    data: data
+    data: data,
+    ...other
   };
 };
 
@@ -297,9 +298,10 @@ exports.createAction = (router, baseurl, routerController, action, path, method,
     } catch (err) {
       ctx.body = {
         code: 40011,
-        msg: '服务出错'
+        msg: '服务出错',
+        errorMsg: JSON.stringify(err)
       }
-      console.log(err, 'error');
+      console.log(err);
     }
   });
 }
@@ -341,3 +343,13 @@ exports.createWebAPIRequest = function (ops) {
 }
 
 */
+// 驼峰式转下横线：
+exports.toLowerLine = (str) => {
+  let temp = str.replace(/[A-Z]/g, function (match) {
+    return "_" + match.toLowerCase();
+  });
+  if(temp.slice(0,1) === '_'){ //如果首字母是大写，执行replace时会多一个_，这里需要去掉
+    temp = temp.slice(1);
+  }
+  return temp;
+}

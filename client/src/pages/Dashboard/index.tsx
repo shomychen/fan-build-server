@@ -3,24 +3,12 @@ import {Button, Row, Col, Card, message, Tooltip} from 'antd';
 import { history } from 'umi';
 import Context from '../../layouts/Context';
 import {EditOutlined, DeleteOutlined, SettingOutlined} from '@ant-design/icons';
-
+import projectList from '@/data/project.list.js'
 import styles from './index.less'
 import editorSvg from "*.svg";
 
 
 const Dashboard = () => {
-  const projectList = [
-    {
-      _id: '11',
-      name: 'IBMS运维中心',
-      filePath: 'D:\\Workerspace\\svn\\gallery\\'
-    },
-    {
-      _id: '22',
-      name: '邑通',
-      filePath: 'D:\\Workerspace\\svn\\gallery\\'
-    }
-  ]
   const handleCardAction = (key: String, data: any) => {
     message.info(`点击事件${key}`)
   }
@@ -63,7 +51,7 @@ const Dashboard = () => {
             >
               <div className={styles.itemBlock}>
                 <div className={styles.title}>{item.name}</div>
-                <div className={styles.subTitle}>{item.filePath}</div>
+                <div className={styles.subTitle}>本地目录：{item.filePath}</div>
               </div>
             </Card>
           </Col>)

@@ -1,17 +1,38 @@
 @import '~antd/lib/style/themes/default.less';
 
+@project-basic-height: 50px;
 @project-side-width: 180px;
 .project {
   position: relative;
   width: 100%;
   height: 100%;
+  overflow: hidden;
 }
+
+.projectBasic {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: @project-basic-height;
+  z-index: 2;
+  padding: @padding-xs @padding-md;
+  background: #2d2d3b;
+  border-bottom: 1px solid #000;
+  border-left: 1px solid #000;
+  strong {
+    color: #fff;
+    font-size: @font-size-lg;
+    padding-left: @padding-md;
+  }
+}
+
 .projectSide {
   position: absolute;
-  top:0;
-  left:0;
+  top: @project-basic-height;
+  left: 0;
   width: @project-side-width;
-  height: 100%;
+  height: calc(100% - @project-basic-height);
   background: #23232e;
   z-index: 1;
   border-right: 1px solid #000;
@@ -20,11 +41,11 @@
     cursor: pointer;
     &:hover {
       //background: ;a
-      background: hsla(0,0%,100%,.02);
+      background: hsla(0, 0%, 100%, .02);
     }
     &.active {
       //background: ;a
-      background: hsla(0,0%,100%,.05);
+      background: hsla(0, 0%, 100%, .05);
     }
     .title {
       color: #fff;
@@ -35,22 +56,30 @@
     }
   }
 }
+
 .projectContent {
   margin-left: @project-side-width + 20px;
-  padding: @padding-md 0;
+  padding: @project-basic-height + 20px 0 @padding-md;
   width: calc(100% - @project-side-width - 20px);
   height: 100%;
+  overflow: scroll;
 }
 
-
-.codeColumn {
-  .headerBar {
-    font-size: @font-size-lg;
-    color: rgba(255, 255, 255, 0.85);
-    line-height: 24px;
-    margin-bottom:  @padding-sm;
+.headerBar {
+  font-size: @font-size-lg + 2px;
+  color: rgba(255, 255, 255, 1);
+  line-height: 24px;
+  margin-bottom: @padding-sm;
+}
+.configGroup {
+  margin-bottom: 30px;
+  max-width: 500px;
+  h2 {
+    color: rgba(255, 255, 255, 1);
+    margin-bottom: @padding-xs;
   }
-  .actionBar {
-    margin-bottom: @padding-sm;
+  .description {
+    color: rgba(255, 255, 255, .4);
+    font-size: @font-size-sm;
   }
 }
