@@ -3,8 +3,10 @@ import { Button, Space } from 'antd';
 import styles from './CodeColumn.less'
 import Terminal from '@/components/Terminal'
 import SockJS from 'sockjs-client';
+import { send } from '@/socket'
 // import request  from 'umi-request';
 import { AttachAddon } from 'xterm-addon-attach';
+import { getTerminalRefIns, setTerminalRefIns } from './terminal.js'
 
 interface CodeProps {
   /** Layout 类型（项目列表、项目详情，loading 页） */
@@ -13,17 +15,33 @@ interface CodeProps {
   title?: string;
   // active: 'install' | 'build';
   // actions?: Array<{}>;
-  // data?: object;
+  data?: object;
+  projectId?: string;
   onAction?: (key?: String) => void
 }
 
 let socket: any;
 const BuildTerminal: React.FC<CodeProps> = (props) => {
-  const {title, onAction} = props;
+  const {title, onAction, projectId, data} = props;
   const handleControl = (key?: String) => {
     // 执行构建命令
-    socket.send(`npm run ${key}`); // 会同时将信息打印到终端
+    // console.log(getTerminalRefIns('BUILD', projectId))
+    send({
+      type: `@@actions/${key}`,
+      payload: {
+        data
+      },
+      key: projectId,
+      // terminal: getTerminalRefIns('BUILD', projectId)
+    }); // 会同时将信息打印到终端
+    // send(`npm run ${key}`); // 会同时将信息打印到终端
     // terminalRef.write(`${key}`); // 编辑器打印命令
+    const terminal = getTerminalRefIns('BUILD', projectId);
+    if (terminal) {
+      console.log('编辑器可以打印', terminal)
+      // terminal.clear();
+      // terminal.write(`${key}`); // 编辑器打印命令
+    }
     if (onAction) onAction(key)
   }
   const [terminalRef, setTerminalRef] = React.useState();
@@ -72,13 +90,19 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
   return <div className={styles.codeColumn}>
     <div className={styles.headerBar}>{title}</div>
     <Space className={styles.actionBar}>
-      <Button type={"primary"} onClick={() => handleControl('build')}>构建</Button>
-      <Button type={"primary"} onClick={() => handleControl('buildAndPush')}>构建并发布</Button>
+      <Button type={"primary"} onClick={() => handleControl('BUILD')}>构建</Button>
+      <Button type={"primary"} onClick={() => handleControl('BUILDAndPUSH')}>构建并发布</Button>
     </Space>
     <Terminal
       // defaultValue={'默认值'}
-      onInit={handleInit}
-      onResize={handleResize}
+      // onInit={handleInit}
+      // onResize={handleResize}
+      onInit={ins => {
+        if (ins) {
+          window.terminal = ins
+          setTerminalRefIns('BUILD', projectId, ins);
+        }
+      }}
       config={config}
       // config={{
       //   cursorBlink: true,

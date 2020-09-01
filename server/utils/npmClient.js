@@ -3,13 +3,8 @@ import BinaryMirrorConfig from 'binary-mirror-config';
 
 const getSpeedUpEnv = () => BinaryMirrorConfig.china.ENVS;
 
-interface IOpts {
-  unsafePerm: false;
-  taobaoSpeedUp: true;
-  onData?: () => {};
-}
 
-export async function executeCommand(npmClient, args, targetDir, opts: IOpts) {
+export async function executeCommand(npmClient, args, targetDir, opts) {
   const extraEnv = getSpeedUpEnv();
   return new Promise((resolve, reject) => {
     // 详细日志

@@ -138,7 +138,7 @@ const Project = (props) => {
         </div> :
           <>
             {
-              active === 'build' ? <BuildlTerminal/> : <InstallTerminal/>
+              active === 'build' ? <BuildlTerminal projectId={params.id} data={currentInfo}/> : <InstallTerminal projectId={params.id}  data={currentInfo}/>
             }
 
             {/*<CodeColumns data={triggerActive} title={triggerActive.title} active={active} onAction={(key)=> handleControl(key)}/>*/}

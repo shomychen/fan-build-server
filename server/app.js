@@ -1,3 +1,6 @@
+// import assert from "assert";
+
+
 const Koa = require('koa');
 const router = require('./router.js'); // 路由集合
 const dbModule = require('./utils/db.js'); // 连接数据库
@@ -7,15 +10,170 @@ const sockjs = require('sockjs'); // 与服务端进行连接
 const http = require('http');
 const chalk = require('chalk');
 const exec = require('child_process').exec;
+const os = require('os');
 const spawn = require('child_process').spawn;
+// const nodeSpawn = require('node-pty').spawn;
 const process = require('process');
+const initTerminal = require('./terminalSocket');
+const runCommand = require('./utils/runCommand');
 // 1. Echo sockjs server
 // const sockjs_opts = {
 //   prefix: '/terminal-socket'
 // };
+// 获取本地命令行版本号
+const getDefaultShell = () => {
+  console.log('当前运行的系统命令行版本 process.platform')
+  if (process.platform === 'darwin') {
+    return process.env.SHELL || '/bin/bash';
+  }
+
+  if (process.platform === 'win32') {
+    return process.env.COMSPEC || 'cmd.exe';
+  }
+  return process.env.SHELL || '/bin/sh';
+};
+
+// 测试连接并执行node及相应命令
+const testLinkNode = (conn) => {
+  try {
+    // Step1.跳转到指定目录
+    process.chdir('D:\\Workerspace\\svn\\webdesign\\trunk\\library\\basic-manage-2.0');
+    console.log(`New directory: ${process.cwd()}`);
+    conn.write(`New directory: ${process.cwd()}\r\n`)
+    // Step2.执行命令
+    exec('npm run test:copy', function (err, stdout, stderr) {
+      if (err) {
+        // result.errCode = 500;
+        // result.msg = "操作失败,请重试！";
+        // result.data = err;
+        conn.write('\r\n' + err.replace(/\n/g, '\r\n') + '\r\n') // 发送信息给客户端
+      } else {
+        console.log('stdout ', stdout);//标准输出
+        conn.write(stdout.replace(/\n/g, '\r\n') + '\r\n') // 发送信息给客户端
+      }
+    })
+  } catch (err) {
+    console.error(`chdir: ${err}`);
+    conn.write(err) // 发送信息给客户端
+  }
+
+}
 const sockjs_echo = sockjs.createServer();
 
 const conns = {}; // 存储多个连接，并进行保存
+
+let term;
+const handleChildProcess =(proc, failure, type)=> {
+  proc.on('message', msg => {
+    console.log(msg)
+    // this.updateState(msg);
+  });
+
+  proc.stdout.setEncoding('utf8');
+  proc.stdout.on('data', log => {
+    console.log(log)
+    // this.emit(TaskEventType.STD_OUT_DATA, log);
+  });
+
+  proc.stderr.setEncoding('utf8');
+  proc.stderr.on('data', log => {
+    console.log('error,', log)
+    // failure({type, payload: log});
+  });
+
+  proc.on('exit', (code, signal) => {
+    // this.state = code === 1 ? TaskState.FAIL : TaskState.INIT;
+    // (async () => {
+    //   this.emit(TaskEventType.STATE_EVENT, await this.getDetail());
+    // })();
+  });
+
+  process.on('exit', () => {
+    proc.kill('SIGTERM');
+  });
+}
+
+async function handleCoreData({ type, payload,  key }, { log, send, success, failure, progress }) {
+  console.log('调用相关执行action', type,  key)
+  // console.log('调用相关执行action - 参数', payload)
+  switch (type) {
+    case '@@actions/BUILD':
+      // TODO.需要调用命令行工具
+      success({
+        type,
+        payload:key
+      })
+      try {
+        // const cwd = this.cwd || process.cwd();
+        // const defaultShell = getDefaultShell();
+
+        const child = spawn('npm', ['list'])
+        child.stdout.on('data', data => {
+          console.log(`npm run list stdout: ${data}`)
+        })
+        child.stderr.on('data', data => {
+          console.log(`npm run list stderr: ${data}`)
+        })
+        child.on('close', code => {
+          console.log(`npm  进程退出，退出码: ${code}`)
+        })
+        child.on('error', code => {
+          console.log(`npm 进程错误，错误码 ${code}`)
+          console.log(code)
+          failure({
+            type,
+            payload: code
+          })
+        })
+      }
+      catch (e) {
+        console.log('child error', e)
+      }
+     /* child.stdout.setEncoding('utf8');
+      child.stdout.on('data', log => {
+        console.log(log)
+        // this.emit(TaskEventType.STD_OUT_DATA, log);
+      });
+      child.stderr.setEncoding('utf8');
+      child.stderr.on('data', log => {
+        console.log('error,', log)
+        // failure({type, payload: log});
+      });*/
+     /* const proc = await runCommand('test', {
+        cwd: this.cwd,
+        env: {
+          ...process.env, // 前端 env
+          // ...analyzeEnv, // analyze env
+          // ...scriptEnvs, // script 解析到的
+        },
+      });
+      handleChildProcess(proc, failure, type);*/
+      // spawn()
+      // this.config.setProjectNpmClient({
+      //   key: payload.key,
+      //   npmClient: payload.npmClient,
+      // });
+      // this.installDeps(payload.npmClient, payload.projectPath, {
+      //   taobaoSpeedUp: this.hasTaobaoSpeedUp(),
+      //   onProgress: progress,
+      //   onSuccess: success,
+      // });
+      break;
+    // case '@@actions/installDependencies':
+    //   this.config.setProjectNpmClient({
+    //     key: payload.key,
+    //     npmClient: payload.npmClient,
+    //   });
+    //   this.installDeps(payload.npmClient, payload.projectPath, {
+    //     taobaoSpeedUp: this.hasTaobaoSpeedUp(),
+    //     onProgress: progress,
+    //     onSuccess: success,
+    //   });
+    //   break;
+    default:
+      break
+  }
+}
 // socket 连接
 sockjs_echo.on('connection', conn => {
   if (!conn) {
@@ -23,33 +181,39 @@ sockjs_echo.on('connection', conn => {
   }
 
   conns[conn.id] = conn; // 存储连接
-  console.log('当前有的连接数量', conns)
+
+  // console.log('当前有的连接数量', conns)
+  this.connctions = conns
   console.log(`🔗 ${chalk.green('Connected to')}: ${conn.id}`);
 
   // 服务端发送消息给客户端
   function send(action) {
     const message = JSON.stringify(action);
-    console.log(chalk.green.bold('>>>>'), formatLogMessage(message));
+    console.log(chalk.green.bold('>>>> 服务端发送消息给客户端:'), formatLogMessage(message));
     Object.keys(conns).forEach(id => {
-      conns[id].write(message);
+      conns[id].write('\r\n' + message + '\r\n');
     });
   }
+
   // 样式化返回信息
   function formatLogMessage(message) {
     let ret = message.length > 500 ? `${message.slice(0, 500)} ${chalk.gray('...')}` : message;
     ret = ret.replace(/{"type":"(.+?)"/, `{"type":"${chalk.magenta.bold('$1')}"`);
     return ret;
   }
+
   function success(type, payload) {
-    console.log('success 成功提示', type , payload)
+    console.log('success 成功提示', type, payload)
     send({ type: `${type}/success`, payload });
   }
+
   function failure(type, payload) {
-    console.log('failuclosere 失败提示', type , payload)
+    console.log('failuclosere 失败提示', type, payload)
     send({ type: `${type}/failure`, payload });
   }
+
   function progress(type, payload) {
-    console.log('执行中', type , payload)
+    console.log('执行中', type, payload)
     send({ type: `${type}/progress`, payload });
   }
 
@@ -80,48 +244,49 @@ sockjs_echo.on('connection', conn => {
 
   conn.on('data', async message => {
     console.log('接收到由客户端返回的消息', message)
-    // const { type, payload, $lang: lang, $key: key } = JSON.parse(message);
     try {
-      // conn.write(message) // 发送信息给客户端
-      const { type, payload, $lang: lang, $key: key } = JSON.parse(message);
+      conn.write(message) // 发送信息给客户端
+      const { type, payload, key } = JSON.parse(message);
       console.log(chalk.blue.bold('<<<<'), formatLogMessage(message));
+      console.log(chalk.blue.bold('<<<<'), type, payload, key);
       const serviceArgs = {
-        action: { type, payload, lang },
+        action: { type, payload },
         log,
         send,
         success: success.bind(this, type),
         failure: failure.bind(this, type),
         progress: progress.bind(this, type),
-      };
+      }; // TODO.在这里面执行相关事件，是否成功后回调 相关事件，如 success failure progress ，里面有对应发出日志消息
 
-      // TODO.在这里面执行相关事件，是否成功后回调 相关事件，如 success failure progress ，里面有对应发出日志消息
-
-
-      // 打包
-      if (message === '打包') {
-        try {
-          // Step1.跳转到指定目录
-          process.chdir('D:\\Workerspace\\svn\\webdesign\\trunk\\library\\basic-manage-2.0');
-          console.log(`New directory: ${process.cwd()}`);
-          conn.write(`New directory: ${process.cwd()}`)
-          // Step2.执行命令
-          exec('npm run start', function (err, stdout, stderr) {
-            if (err) {
-              // result.errCode = 500;
-              // result.msg = "操作失败,请重试！";
-              // result.data = err;
-              conn.write(err) // 发送信息给客户端
-            } else {
-              console.log('stdout ', stdout);//标准输出
-              conn.write(stdout) // 发送信息给客户端
-            }
-          })
-        } catch (err) {
-          console.error(`chdir: ${err}`);
-          conn.write(err) // 发送信息给客户端
-        }
-
+      if (type === 'INSTALL') {
+        testLinkNode(conn) // 测试
       }
+      console.log(typeof  type)
+
+      if (type.startsWith('@@')) {
+        console.log('返回请求带@@开头，执行handleCoreData', type)
+        await handleCoreData(
+          { type, payload, key },
+          {
+            log,
+            send,
+            success: success.bind(this, type),
+            failure: failure.bind(this, type),
+            progress: progress.bind(this, type),
+          },
+        );
+      } else {
+        console.log('返回另外一种异常，如org.umi.开头', key)
+        // assert 断言 当第一个参数对应的布尔值为true时，不会有任何提示，返回undefined。当第一个参数对应的布尔值为false时，会抛出一个错误，该错误的提示信息就是第二个参数设定的字符串。
+        // assert(this.servicesByKey[key], `service of key ${key} not exists.`);
+        // const service = this.servicesByKey[key];
+        // await service.applyPlugins({
+        //   key: 'onUISocket',
+        //   type: service.ApplyPluginsType.event,
+        //   args: serviceArgs,
+        // });
+      }
+
     }
     catch (e) {
       console.error(chalk.red(e.stack));
@@ -140,13 +305,15 @@ app.use(router.routes()) // 引用路由
   .use(router.allowedMethods())  // 作用： 这是官方文档的推荐用法,我们可以看到router.allowedMethods()用在了路由匹配router.routes()之后,所以在当所有路由中间件最后调用.此时根据ctx.status设置response响应头
 
 const server = http.createServer(app.callback());
+console.log('当前文件内部this', this)
 sockjs_echo.installHandlers(server, {
-  prefix: '/terminal-socket',
+  prefix: '/page-socket',
   log: () => {
-    console.log(`😿 服务端sockjs启动监听目录 ${chalk.red('/terminal-socket')}`)
+    console.log(`😿 服务端sockjs启动监听目录 ${chalk.red('/page-socket')}`)
   },
 });
-;
+
+initTerminal.call(this, server); // 另外一个socket '/terminal-socket'
 
 server.listen(9999, '0.0.0.0');
 console.log('[socket启动成功] Listening on 0.0.0.0:9999');
