@@ -12,7 +12,7 @@ const chalk = require('chalk');
 const exec = require('child_process').exec;
 const os = require('os');
 const spawn = require('child_process').spawn;
-// const nodeSpawn = require('node-pty').spawn;
+const nodeSpawn = require('node-pty').spawn;
 const process = require('process');
 const initTerminal = require('./terminalSocket');
 const runCommand = require('./utils/runCommand');
@@ -33,7 +33,7 @@ const getDefaultShell = () => {
   return process.env.SHELL || '/bin/sh';
 };
 
-// 测试连接并执行node及相应命令
+// 测试连接并执行node及相应命令（使用 child_process.exec，只有打印最张结果数据，不像spawn，可以打印所有进程）
 const testLinkNode = (conn) => {
   try {
     // Step1.跳转到指定目录
@@ -63,7 +63,8 @@ const sockjs_echo = sockjs.createServer();
 const conns = {}; // 存储多个连接，并进行保存
 
 let term;
-const handleChildProcess =(proc, failure, type)=> {
+let logs = []; // 存储日志信息
+const handleChildProcess = (proc, failure, type) => {
   proc.on('message', msg => {
     console.log(msg)
     // this.updateState(msg);
@@ -93,71 +94,45 @@ const handleChildProcess =(proc, failure, type)=> {
   });
 }
 
-async function handleCoreData({ type, payload,  key }, { log, send, success, failure, progress }) {
-  console.log('调用相关执行action', type,  key)
-  // console.log('调用相关执行action - 参数', payload)
+async function handleCoreData({ type, payload, key }, { log, send, success, failure, progress }, connection) {
+  console.log('调用相关执行action', type, key)
+  console.log('调用相关执行action - 参数', payload)
   switch (type) {
     case '@@actions/BUILD':
-      // TODO.需要调用命令行工具
-      success({
-        type,
-        payload:key
-      })
       try {
-        // const cwd = this.cwd || process.cwd();
-        // const defaultShell = getDefaultShell();
-
-        const child = spawn('npm', ['list'])
-        child.stdout.on('data', data => {
-          console.log(`npm run list stdout: ${data}`)
+        // process.chdir('D:\\Workerspace\\svn\\webdesign\\trunk\\library\\basic-manage-2.0');
+        const child = spawn(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'build'], {
+          cwd: payload.filePath || process.cwd()
+        })
+        child.stdout.on('data', buffer => {
+          console.log(`spawn  stdout: ${buffer}`) // 返回类型为 buffer
+          progress({
+            data: buffer.toString()
+          })
         })
         child.stderr.on('data', data => {
-          console.log(`npm run list stderr: ${data}`)
+          console.log(`spawn stderr: ${data}`)
+          failure({
+            data: data.toString()
+          })
         })
         child.on('close', code => {
           console.log(`npm  进程退出，退出码: ${code}`)
+          success({
+            data: code.toString()
+          })
         })
         child.on('error', code => {
           console.log(`npm 进程错误，错误码 ${code}`)
-          console.log(code)
+          // console.log(JSON.stringify(code))
           failure({
-            type,
-            payload: code
+            data: code.toString()
           })
         })
       }
       catch (e) {
         console.log('child error', e)
       }
-     /* child.stdout.setEncoding('utf8');
-      child.stdout.on('data', log => {
-        console.log(log)
-        // this.emit(TaskEventType.STD_OUT_DATA, log);
-      });
-      child.stderr.setEncoding('utf8');
-      child.stderr.on('data', log => {
-        console.log('error,', log)
-        // failure({type, payload: log});
-      });*/
-     /* const proc = await runCommand('test', {
-        cwd: this.cwd,
-        env: {
-          ...process.env, // 前端 env
-          // ...analyzeEnv, // analyze env
-          // ...scriptEnvs, // script 解析到的
-        },
-      });
-      handleChildProcess(proc, failure, type);*/
-      // spawn()
-      // this.config.setProjectNpmClient({
-      //   key: payload.key,
-      //   npmClient: payload.npmClient,
-      // });
-      // this.installDeps(payload.npmClient, payload.projectPath, {
-      //   taobaoSpeedUp: this.hasTaobaoSpeedUp(),
-      //   onProgress: progress,
-      //   onSuccess: success,
-      // });
       break;
     // case '@@actions/installDependencies':
     //   this.config.setProjectNpmClient({
@@ -174,6 +149,7 @@ async function handleCoreData({ type, payload,  key }, { log, send, success, fai
       break
   }
 }
+
 // socket 连接
 sockjs_echo.on('connection', conn => {
   if (!conn) {
@@ -185,12 +161,13 @@ sockjs_echo.on('connection', conn => {
   // console.log('当前有的连接数量', conns)
   this.connctions = conns
   console.log(`🔗 ${chalk.green('Connected to')}: ${conn.id}`);
-
+console.log('当前存储的this.connctions', this.connctions)
   // 服务端发送消息给客户端
   function send(action) {
     const message = JSON.stringify(action);
     console.log(chalk.green.bold('>>>> 服务端发送消息给客户端:'), formatLogMessage(message));
     Object.keys(conns).forEach(id => {
+      console.log('当前监听到的id', id)
       conns[id].write('\r\n' + message + '\r\n');
     });
   }
@@ -218,7 +195,7 @@ sockjs_echo.on('connection', conn => {
   }
 
   const log = (type, message) => {
-    // 拼装报错消息
+    // 拼装日志消息消息
     const payload = {
       date: +new Date(),
       type,
@@ -228,7 +205,7 @@ sockjs_echo.on('connection', conn => {
     console.log('回传日志信息', msg)
     const logFunc = type === 'error' ? console.error : console.log;
     logFunc(msg); // 服务端控制台打包当前日志信息
-    // this.logs.push(payload);
+    logs.push(payload);
     send({
       type: '@@log/message',
       payload,
@@ -239,28 +216,18 @@ sockjs_echo.on('connection', conn => {
   // 断开
   conn.on('close', () => {
     console.log(`😿 ${chalk.red('Disconnected to')}: ${conn.id}`);
-    // delete conns[conn.id];
+    delete conns[conn.id];
   });
 
   conn.on('data', async message => {
     console.log('接收到由客户端返回的消息', message)
     try {
-      conn.write(message) // 发送信息给客户端
       const { type, payload, key } = JSON.parse(message);
       console.log(chalk.blue.bold('<<<<'), formatLogMessage(message));
-      console.log(chalk.blue.bold('<<<<'), type, payload, key);
-      const serviceArgs = {
-        action: { type, payload },
-        log,
-        send,
-        success: success.bind(this, type),
-        failure: failure.bind(this, type),
-        progress: progress.bind(this, type),
-      }; // TODO.在这里面执行相关事件，是否成功后回调 相关事件，如 success failure progress ，里面有对应发出日志消息
-
-      if (type === 'INSTALL') {
-        testLinkNode(conn) // 测试
-      }
+      // console.log(chalk.blue.bold('<<<<'), type, payload, key);
+      // if (type === 'INSTALL') {
+      //   testLinkNode(conn) // 测试
+      // }
       console.log(typeof  type)
 
       if (type.startsWith('@@')) {
@@ -274,6 +241,7 @@ sockjs_echo.on('connection', conn => {
             failure: failure.bind(this, type),
             progress: progress.bind(this, type),
           },
+          conn
         );
       } else {
         console.log('返回另外一种异常，如org.umi.开头', key)
@@ -286,7 +254,6 @@ sockjs_echo.on('connection', conn => {
         //   args: serviceArgs,
         // });
       }
-
     }
     catch (e) {
       console.error(chalk.red(e.stack));
@@ -308,8 +275,8 @@ const server = http.createServer(app.callback());
 console.log('当前文件内部this', this)
 sockjs_echo.installHandlers(server, {
   prefix: '/page-socket',
-  log: () => {
-    console.log(`😿 服务端sockjs启动监听目录 ${chalk.red('/page-socket')}`)
+  log: (e) => {
+    console.log(`😿 服务端sockjs启动监听目录 ${chalk.red('/page-socket')}`, e)
   },
 });
 

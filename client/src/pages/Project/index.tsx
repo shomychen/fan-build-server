@@ -28,8 +28,8 @@ const Project = (props) => {
     },
     {
       key: 'build',
-      title: '打包构建',
-      description: '执行项目打包构建',
+      title: '构建发布',
+      description: '执行项目构建及发布',
     }
   ]
   const currentInfo = useMemo(() => {
@@ -138,7 +138,8 @@ const Project = (props) => {
         </div> :
           <>
             {
-              active === 'build' ? <BuildlTerminal projectId={params.id} data={currentInfo}/> : <InstallTerminal projectId={params.id}  data={currentInfo}/>
+              active === 'build' ? <BuildlTerminal title="打包构建" projectId={params.id} data={currentInfo}/>
+                : <InstallTerminal  title="安装依赖"projectId={params.id}  data={currentInfo}/>
             }
 
             {/*<CodeColumns data={triggerActive} title={triggerActive.title} active={active} onAction={(key)=> handleControl(key)}/>*/}

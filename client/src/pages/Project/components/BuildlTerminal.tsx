@@ -25,22 +25,17 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
   const {title, onAction, projectId, data} = props;
   const handleControl = (key?: String) => {
     // 执行构建命令
-    // console.log(getTerminalRefIns('BUILD', projectId))
-    send({
-      type: `@@actions/${key}`,
-      payload: {
-        data
-      },
-      key: projectId,
-      // terminal: getTerminalRefIns('BUILD', projectId)
-    }); // 会同时将信息打印到终端
-    // send(`npm run ${key}`); // 会同时将信息打印到终端
-    // terminalRef.write(`${key}`); // 编辑器打印命令
     const terminal = getTerminalRefIns('BUILD', projectId);
     if (terminal) {
-      console.log('编辑器可以打印', terminal)
-      // terminal.clear();
+      terminal.clear(); // 先清空当前命令
       // terminal.write(`${key}`); // 编辑器打印命令
+      send({
+        type: `@@actions/${key}`,
+        payload: {
+          ...data // 里面有当前项目的目录路径
+        },
+        key: projectId,
+      }); // 会同时将信息发送到服务端
     }
     if (onAction) onAction(key)
   }
@@ -91,6 +86,8 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
     <div className={styles.headerBar}>{title}</div>
     <Space className={styles.actionBar}>
       <Button type={"primary"} onClick={() => handleControl('BUILD')}>构建</Button>
+      <Button type={"primary"} onClick={() => handleControl('CANCEL')}>中止</Button>
+      <Button type={"primary"} onClick={() => handleControl('CI')}>发布至SVN</Button>
       <Button type={"primary"} onClick={() => handleControl('BUILDAndPUSH')}>构建并发布</Button>
     </Space>
     <Terminal

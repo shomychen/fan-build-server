@@ -56,7 +56,7 @@ export async function init(opts = {}) {
       sock.onmessage = handler;
       sock.onclose = () => {
         sock = null;
-        console.log('报错重新执行连接')
+        console.log('连接断开，重新执行连接')
         if (retries === 0) showErrorMessage();
         if (retries <= 10) {
           const retryInMs = 1000 * Math.pow(2, retries) + Math.random() * 100;
@@ -108,8 +108,8 @@ export function callRemote<T = object, K = object>(
     sock.send(
       JSON.stringify({
         ...action,
-        $lang: 'zh-CN' ,// getLocale(),
-        // $key: window.g_currentProject, // 获取当前项目ID
+        // $lang: 'zh-CN' ,// getLocale(),
+        $key: window.g_currentProject, // 获取当前项目ID
       }),
     );
   });
