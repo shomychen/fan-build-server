@@ -12,9 +12,10 @@ const chalk = require('chalk');
 const exec = require('child_process').exec;
 const os = require('os');
 const spawn = require('child_process').spawn;
-const nodeSpawn = require('node-pty').spawn;
+// const nodeSpawn = require('node-pty').spawn;
 const process = require('process');
 const initTerminal = require('./terminalSocket');
+const handleCoreData = require('./runTask');
 const runCommand = require('./utils/runCommand');
 // 1. Echo sockjs server
 // const sockjs_opts = {
@@ -94,61 +95,6 @@ const handleChildProcess = (proc, failure, type) => {
   });
 }
 
-async function handleCoreData({ type, payload, key }, { log, send, success, failure, progress }, connection) {
-  console.log('调用相关执行action', type, key)
-  console.log('调用相关执行action - 参数', payload)
-  switch (type) {
-    case '@@actions/BUILD':
-      try {
-        // process.chdir('D:\\Workerspace\\svn\\webdesign\\trunk\\library\\basic-manage-2.0');
-        const child = spawn(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'build'], {
-          cwd: payload.filePath || process.cwd()
-        })
-        child.stdout.on('data', buffer => {
-          console.log(`spawn  stdout: ${buffer}`) // 返回类型为 buffer
-          progress({
-            data: buffer.toString()
-          })
-        })
-        child.stderr.on('data', data => {
-          console.log(`spawn stderr: ${data}`)
-          failure({
-            data: data.toString()
-          })
-        })
-        child.on('close', code => {
-          console.log(`npm  进程退出，退出码: ${code}`)
-          success({
-            data: code.toString()
-          })
-        })
-        child.on('error', code => {
-          console.log(`npm 进程错误，错误码 ${code}`)
-          // console.log(JSON.stringify(code))
-          failure({
-            data: code.toString()
-          })
-        })
-      }
-      catch (e) {
-        console.log('child error', e)
-      }
-      break;
-    // case '@@actions/installDependencies':
-    //   this.config.setProjectNpmClient({
-    //     key: payload.key,
-    //     npmClient: payload.npmClient,
-    //   });
-    //   this.installDeps(payload.npmClient, payload.projectPath, {
-    //     taobaoSpeedUp: this.hasTaobaoSpeedUp(),
-    //     onProgress: progress,
-    //     onSuccess: success,
-    //   });
-    //   break;
-    default:
-      break
-  }
-}
 
 // socket 连接
 sockjs_echo.on('connection', conn => {
@@ -159,9 +105,10 @@ sockjs_echo.on('connection', conn => {
   conns[conn.id] = conn; // 存储连接
 
   // console.log('当前有的连接数量', conns)
-  this.connctions = conns
+  // this.connctions = conns
   console.log(`🔗 ${chalk.green('Connected to')}: ${conn.id}`);
-console.log('当前存储的this.connctions', this.connctions)
+  // console.log('当前存储的this.connctions', conns)
+
   // 服务端发送消息给客户端
   function send(action) {
     const message = JSON.stringify(action);

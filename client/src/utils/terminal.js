@@ -1,9 +1,9 @@
 const TaskType = {
-  BUILD: "BUILD",
+  BUILD: "BUILD", // 构建
+  BUILDAndDEPLOY: "BUILDAndDEPLOY", // 构建及部署
   DEV: "DEV",
-  TEST: "TEST",
-  LINT: "LINT",
-  INSTALL: "INSTALL"
+  PUSH: "PUSH", // 发布已打包的目录到SVN
+  INSTALL: "INSTALL" // 安装依赖
 }
 
 const TERMINAL_MAPS = {};

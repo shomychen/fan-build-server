@@ -69,7 +69,16 @@ let routerConfig = {
       path: 'change/path', // 指请求API 的 path
       method: 'get'
     },
-  ]
+    {
+      action: 'initNpmClients', // 指controller内的方法
+      path: 'fetch/npmClient', // 指请求API 的 path
+      method: 'get'
+    },
+
+  ],
+  // socketInit: [
+  //
+  // ],
 }
 
 

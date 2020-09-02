@@ -1,8 +1,10 @@
 // 持续集成
+
 const baseController = require('./base.js');
 const doShellCmd = require('../utils/doShellCmd.js');
 const tools = require('../utils/tools.js');
 const exec = require('child_process').exec;
+const execSync = require('child_process').execSync;
 const process = require('process');
 
 class ciController extends baseController {
@@ -62,6 +64,17 @@ class ciController extends baseController {
       console.error(`chdir: ${err}`);
       return (ctx.body = tools.commons.resReturn(err, 400, '当前目录 不存在'));
     }
+  }
+  // 获取当前系统已的的node相关客户端
+  async initNpmClients(ctx) {
+    const ret = ['tnpm', 'cnpm', 'npm', 'ayarn', 'tyarn', 'yarn'].filter(npmClient => {
+      try {
+        execSync(`${npmClient} --version`, { stdio: 'ignore' });
+        return true;
+      } catch (e) {}
+      return false;
+    });
+    return (ctx.body = tools.commons.resReturn(ret, 200, '操作成功'));
   }
 }
 

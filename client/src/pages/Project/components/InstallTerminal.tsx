@@ -1,11 +1,11 @@
 import React, { useEffect } from 'react';
 import { Button, Space } from 'antd';
-import styles from './CodeColumn.less'
+import styles from './index.less'
 import Terminal from '@/components/Terminal'
 import SockJS from 'sockjs-client';
 // import request  from 'umi-request';
 import { AttachAddon } from 'xterm-addon-attach';
-import { getTerminalRefIns, setTerminalRefIns } from './terminal.js'
+import { getTerminalRefIns, setTerminalRefIns } from '@/utils/terminal.js'
 
 interface CodeProps {
   /** Layout 类型（项目列表、项目详情，loading 页） */

@@ -5,6 +5,7 @@ import cls from 'classnames';
 import {history} from 'umi';
 import Footer from './Footer'
 import Context from './Context';
+import logo from '@/assets/logo.png'
 
 const {Sider, Content} = Layout;
 
@@ -48,6 +49,9 @@ const PageLayout: React.FC<ILayoutProps> = props => {
           {/*<link rel="shortcut icon" href={icon} type="image/x-icon" />*/}
         </Helmet>
         <Sider width={100}  className={'fan-layout-sider'}>
+          <div  className={'fan-layout-sider-logo'}>
+            <a><img  alt={props.title ? props.title : '前端部署'} src={logo}/></a>
+          </div>
           <Menu onSelect={(item) =>{
             // setMenuActive([item.key])
             history.push(item.key)

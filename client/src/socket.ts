@@ -38,7 +38,7 @@ export async function init(opts = {}) {
         el.style.fontFamily = `-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'`;
         el.style.padding = '8px 0';
         el.style.boxShadow = '0px 4px 8px rgba(0, 0, 0, 0.1)';
-        el.innerHTML ='已和 Fan Build UI 服务器断开连接，正在尝试重连...'
+        el.innerHTML ='已和 Fan Build Sever 服务器断开连接，正在尝试重连...'
         document.body.appendChild(el);
       } else {
         el.style.display = 'block';

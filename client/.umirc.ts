@@ -20,6 +20,7 @@ const publicPath = NODE_ENV === 'development' ? 'http://localhost:8002/' : '/'; 
 export default defineConfig({
   // presets: ['@umijs/preset-react'],
   // plugins: ['@umijs/plugin-esbuild'],
+  favicon: '/favicon.ico',
   nodeModulesTransform: {
     type: 'none',
   },

@@ -13,11 +13,13 @@ export default [
     "logo": "", // LOGO图片(预留)
     "logoName": "IBMS运维", // LOGO右侧文本(预留)
     "favicon": "", // 站点ico(预留)
+    "testEnvUrl": "http://172.16.3.118:8181/spms-ibms/",
+    "proEnvUrl": "http://172.16.3.118:8181/spms-ibms/",
   },
   {
     "_id": "22",
     "name": "邑通", // 项目名称
-    "filePath": "", // 本地目录
+    "filePath": "ddd", // 本地目录
     "svnPath": "", // SVN 地址
     "buildPath": "", // 打包路径，默认是 '/',决定部署指定目录
     "deployFilePath": "", // 部署本地目录
@@ -28,5 +30,7 @@ export default [
     "logo": "", // LOGO图片(预留)
     "logoName": "", // LOGO右侧文本(预留)
     "favicon": "", // 站点ico(预留)
+    "testEnvUrl": "http://59.61.92.25:8181/yt-ibms-web/",
+    "proEnvUrl": "http://59.61.92.25:8181/yt-ibms-web-dev/",
   }
 ]

@@ -83,3 +83,17 @@
     font-size: @font-size-sm;
   }
 }
+
+:global {
+  .toolbarControl {
+    text-align: center;
+    position: fixed;
+    right:0;
+    bottom: @ui-status-bar-height;
+    width: calc(100% - 100px - @project-side-width - 20px);  // 100% - 最左侧菜单栏宽度100 - 任务菜单栏宽度180 - 任务菜单栏与内容区间距20
+    height: 52px;
+    padding: 10px @padding-md;
+    background: #23232e;
+    z-index: 14;
+  }
+}
