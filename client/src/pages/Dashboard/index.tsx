@@ -124,7 +124,9 @@ const Dashboard = connect(({ project, loading }) => ({
                   disabled={item.taskState  === 'process'}>
                     <a onClick={e => {
                       e.stopPropagation()
-                      message.warning('任务执行中，无法删除！')
+                      if (item.taskState  === 'process') {
+                        message.warning('任务执行中，无法删除！')
+                      }
                     }}>
                       <Tooltip title={'删除'}>
                         <DeleteOutlined key="delete" />
@@ -139,7 +141,7 @@ const Dashboard = connect(({ project, loading }) => ({
                       <Badge status={item.status === '0' ? 'warning' : 'success'} /> {/* 显示项目状态 */}
                       <span>{item.name}</span>
                       {/* 显示任务状态 */}
-                      {item.taskState !== 'init' && (
+                      {item.taskState && item.taskState !== 'init' && (
                         <Tag className={`task-tag  ${'tag-' + item.taskState}`}>
                           {item.taskTypeName}{item.taskStateName}
                         </Tag>
