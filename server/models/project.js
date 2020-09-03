@@ -1,41 +1,36 @@
 // const mongoose = require('mongoose')
 const baseModel = require('./base.js');
-/**
- * test(tests) Model
- *  测试
- */
-// let testSchma = new mongoose.Schema({
-//   username: String,
-//   password: String,
-//   age: Number,
-//   address: String
-// })
-// const projectModal = mongoose.model('Test', testSchma)
-// module.exports = projectModal
 
 // 继承baseModel方法
-class projectModal extends baseModel {
+class projectModel extends baseModel {
   // 当前model名称
   getName() {
-    return 'project';
+    return 'Project';
   }
 
   // 当前model内 类型处理
   getSchema() {
     return {
-      name: String, // 项目名称
-      filePath: String, // 本地目录
-      svnPath: String, // SVN 地址
-      buildPath: String, // 打包路径，默认是 '/',决定部署指定目录
-      deployFilePath: String, // 部署本地目录
-      deploySvnPath: String,  // 部署SVN地址
-      themeColor: String,     // 主题色
-      siteTitle: String, // 站点名称
-      localStorageName: String, // 本地存储资源名称
-      logo: String, // LOGO图片(预留)
-      logoName: String, // LOGO右侧文本(预留)
-      favicon: String, // 站点ico(预留)
-    }
+      "name":  String,
+      "filePath":  String,
+      "svnPath":  String,
+      "buildPath": String,
+      "deployFilePath":  String,
+      "deploySvnPath": String,
+      "themeColor":  String,
+      "siteTitle": String,
+      "localStorageName": String,
+      "logo":  String,
+      "logoName": String,
+      "favicon": String,
+      "envTestUrl":  String,
+      "envProUrl":  String,
+      "status": String,  // 项目状态： '1'表示基础信息已配置，'0'表示基础信息未配置
+      "taskType": String, // 任务类型： 'BUILD'表示项目处理构建中，'DEFAULT'表示项目无任务状态 ， 'INSTALL'表示项目执行安装包中， 'DEPLOY'表示项目执行发布中
+      "taskTypeName": String, // 任务类型描述名： '构建'表示项目处理构建中，'默认'表示项目无任务状态 ， '包安装'表示项目执行安装包中， '发布'表示项目执行发布中
+      "taskState": String, // 任务执行状态：  'init'表示任务执行无状态, 'ing' 表示任务进行中，'success'表示任务执行成功， 'fail'表示任务执行失败
+      "taskStateName": String,  // 任务执行状态描述名： '无状态', '进行中','执行成功'， 'fail执行失败 '，
+  }
   }
   // 保存
   save(data) {
@@ -47,15 +42,10 @@ class projectModal extends baseModel {
   list() {
     return this.model
       .find()
-      .select('_id username age address password') // 取指定的字段
+      .select('_id name filePath status taskType taskTypeName taskState taskStateName') // 取指定的字段
       // .exec(); //显示id name email role
   }
-  // 通过username名称查找
-  findByUsername(name) {
-    return this.model.findOne({
-      username: name
-    });
-  }
+
   // 通过 id 查找
   findById(id) {
     return this.model.findOne({
@@ -80,8 +70,8 @@ class projectModal extends baseModel {
   // 判断名称是否唯一性
   checkNameRepeat(name) {
     return this.model.countDocuments({
-      username: name
+      name: name
     });
   }
 }
-module.exports = projectModal;
+module.exports = projectModel;

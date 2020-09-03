@@ -1,3 +1,4 @@
+@import '~antd/lib/style/themes/default.less';
 html,
 body,
 #root {
@@ -290,4 +291,35 @@ h3 {
 
 .bigTitle {
   font-size: calc(40px + 1vw);
+}
+[class*= text-] {
+  font-size: 12px;
+}
+.text-warning{
+  color: @warning-color;
+}
+.text-info {
+  color: @info-color;
+}
+.text-danger,.text-error{
+  color: @error-color;
+}
+.text-success {
+  color: @success-color;
+}
+.task-tag {
+  margin-left: @padding-sm;
+  background: transparent;
+  &.tag-success {
+    color: @success-color;
+    border-color: @success-color;
+  }
+  &.tag-process {
+    color: @primary-color;
+    border-color: @primary-color;
+  }
+  &.tag-failure {
+    color: @error-color;
+    border-color: @error-color;
+  }
 }

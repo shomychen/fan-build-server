@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Button, Space } from 'antd';
+import { CaretRightOutlined, PauseOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import styles from './index.less'
 import Terminal from '@/components/Terminal'
 import SockJS from 'sockjs-client';
@@ -21,7 +22,8 @@ interface CodeProps {
 
 let socket: any;
 const InstallTerminal: React.FC<CodeProps> = (props) => {
-  const {title, onAction, projectId, data} = props;
+  const { title, onAction, projectId, data } = props;
+  const { status } = data;
   const handleControl = (key?: String) => {
     socket.send('npm run client:dev' + '\r\n');
     // 执行构建命令
@@ -46,7 +48,7 @@ const InstallTerminal: React.FC<CodeProps> = (props) => {
         console.log('接收服务端返回的消息', e)
       };
       console.log('没有时创建 sockjs')
-      xterm.loadAddon(new AttachAddon(socket, {bidirectional: false}));
+      xterm.loadAddon(new AttachAddon(socket, { bidirectional: false }));
       xterm.focus();
       await handleResize(xterm);
     } else {
@@ -85,9 +87,34 @@ const InstallTerminal: React.FC<CodeProps> = (props) => {
       // if (terminalRef) terminalRef.dispose()
     }
   }, [])
+
+  // 执行中的任务类型不为INSTALL，也不包括默认DEFUA且任务状态等于process
+  const isInstallRunning =  data.taskType === 'INSTALL' && data.taskState === 'process'; // 安装进行中
+  const isTaskRunning = isInstallRunning || data.taskType !== 'DEFAULT' ||  data.taskState === 'process'// 其他任务进行中
+  console.log(isInstallRunning,  isTaskRunning)
   return <div className={styles.codeColumn}>
     <div className={styles.headerBar}>{title}</div>
-    <Space className={styles.actionBar}><Button type={"primary"} onClick={() => handleControl('INSTALL')}>安装</Button></Space>
+    <Space className={styles.actionBar}>
+      <Button type={"primary"} onClick={() => handleControl(isInstallRunning ? 'CANCEL' : 'INSTALL')}
+              disabled={data.status === '0'}
+      >
+        {isInstallRunning ? (
+          <>
+            <PauseOutlined />
+            <span className={styles.runningText}>
+              {' '}停止
+                  </span>
+          </>
+        ) : (
+          <>
+            <CaretRightOutlined />
+            <span className={styles.runningText}>
+              {' '}安装
+            </span>
+          </>
+        )}
+      </Button>
+    </Space>
     <Terminal
       onInit={ins => {
         if (ins) {

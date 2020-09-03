@@ -13,6 +13,7 @@ router.use('/user', user);
 // 方式二
 const testController = require('./controllers/test.js');
 const ciController = require('./controllers/ci.js');
+const projectController= require('./controllers/project.js');
 const router = new Router()
 
 let INTERFACE_CONFIG = {
@@ -24,6 +25,11 @@ let INTERFACE_CONFIG = {
     prefix: '/ci/', // API前缀
     controller: ciController
   },
+  project: {
+    prefix: '/project/', // API前缀
+    controller: projectController
+  },
+
 }
 let routerConfig = {
   test: [
@@ -76,6 +82,34 @@ let routerConfig = {
     },
 
   ],
+  project: [
+    {
+      action: 'fetchPage', // 指controller内的方法
+      path: 'page', // 指请求API 的 path
+      method: 'get'
+    },
+    {
+      action: 'queryById',
+      path: 'detail',
+      method: 'get'
+    },
+    {
+      action: 'createSave',
+      path: 'save',
+      method: 'post'
+    },
+    {
+      action: 'update',
+      path: 'update',
+      method: 'post'
+    },
+    {
+      action: 'deleteById',
+      path: 'delete',
+      method: 'post'
+    },
+  ],
+  task: []
   // socketInit: [
   //
   // ],

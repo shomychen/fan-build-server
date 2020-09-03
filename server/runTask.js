@@ -59,38 +59,48 @@ async function runCommand({ cwd, npmClient, runArgs }, { log, send, success, fai
 async function handleCoreData({ type, payload, key }, { log, send, success, failure, progress }, connection) {
   console.log('调用相关执行action', type, key)
   console.log('调用相关执行action - 参数', payload)
-  let cwd = payload.filePath || process.cwd()
-  let npmClient = payload.npmClient || 'npm'
-  switch (type) {
-    case '@@actions/BUILD':
-      try {
-        const runArgs = ['run', 'build']
-        await runCommand({ cwd, npmClient, runArgs }, { log, send, success, failure, progress })
-      }
-      catch (e) {
-        console.log('child error', e)
-      }
-      break;
-    case '@@actions/BUILDAndDEPLOY':
-      try {
-        const runArgs = ['run', 'build']
-        await runCommand({ cwd, npmClient, runArgs }, { log, send, success, failure, progress })
-      }
-      catch (e) {
-        console.log('child error', e)
-      }
-      break;
-    // 取消当前执行的任务
-    case '@@actions/CANCEL':
-      break;
-    case '@@actions/TESTCOPY':
-      cwd = 'D:\\Workerspace\\svn\\webdesign\\trunk\\library\\basic-manage-2.0'
-      npmClient = 'npm'
-      await runCommand({ cwd, npmClient, runArgs: ['run', 'test:copy'] }, { log, send, success, failure, progress })
-      break;
+  if (type.startsWith('@@actions')) {
+    let cwd = payload.filePath || process.cwd()
+    let npmClient = payload.npmClient || 'npm'
+    switch (type) {
+      case '@@actions/BUILD':
+        try {
+          let runArgs = []
+          // 构建目录配置为空或者 '/'时，执行npm run build，打包产物需要部署到根目录
+          if (payload.buildPath && payload.buildPath !== '/') {
+            runArgs = ['run', 'build']
+          } else {
+            runArgs = ['run', 'build:sub']
+          }
+          await runCommand({ cwd, npmClient, runArgs }, { log, send, success, failure, progress })
+        }
+        catch (e) {
+          console.log('child error', e)
+        }
+        break;
+      case '@@actions/BUILDAndDEPLOY':
+        try {
+          const runArgs = ['run', 'build']
+          await runCommand({ cwd, npmClient, runArgs }, { log, send, success, failure, progress })
+        }
+        catch (e) {
+          console.log('child error', e)
+        }
+        break;
+      // 取消当前执行的任务
+      case '@@actions/CANCEL':
+        break;
+      case '@@actions/TESTCOPY':
+        cwd = 'D:\\Workerspace\\svn\\webdesign\\trunk\\library\\basic-manage-2.0'
+        npmClient = 'npm'
+        await runCommand({ cwd, npmClient, runArgs: ['run', 'test:copy'] }, { log, send, success, failure, progress })
+        break;
 
-    default:
-      break
+      default:
+        break
+    }
+  } else {
+    console.log('执行其他相关的事件'  , type)
   }
 }
 

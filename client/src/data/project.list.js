@@ -1,20 +1,20 @@
 export default [
   {
-    "_id": "11",
+   "_id": "11",
     "name": "智能建筑组合管控集成平台", // 项目名称
     "filePath": "D:\\Workerspace\\svn\\webdesign\\trunk\\project\\IBMS-manage-1.0\\", // 本地目录
     "svnPath": "http://svn1.fanzhuo.net.cn:81/code/webdesign/trunk/project/IBMS-manage-1.0", // SVN 地址
     "buildPath": "spms-ibms", // 打包路径，默认是 '/',决定部署指定目录
     "deployFilePath": "D:\\Workerspace\\svn\\ibms1.0\\trunk\\ibms-html\\", // 部署本地目录
-    "deploySvnPath": "http://svn1.fanzhuo.net.cn:81/code/ibms/trunk/ibms1.0/trunk/ibms-html",  // 部署SVN地址
+    "deploySvnPath": "http://svn1 .fanzhuo.net.cn:81/code/ibms/trunk/ibms1.0/trunk/ibms-html",  // 部署SVN地址
     "themeColor": "#528DFF",     // 主题色
     "siteTitle": "智能建筑组合管控集成平台", // 站点名称
     "localStorageName": "ibms", // 本地存储资源名称
     "logo": "", // LOGO图片(预留)
     "logoName": "IBMS运维", // LOGO右侧文本(预留)
     "favicon": "", // 站点ico(预留)
-    "testEnvUrl": "http://172.16.3.118:8181/spms-ibms/",
-    "proEnvUrl": "http://172.16.3.118:8181/spms-ibms/",
+    "envTestUrl": "http://172.16.3.118:8181/spms-ibms/",
+    "envProUrl": "http://172.16.3.118:8181/spms-ibms/",
   },
   {
     "_id": "22",
@@ -30,7 +30,7 @@ export default [
     "logo": "", // LOGO图片(预留)
     "logoName": "", // LOGO右侧文本(预留)
     "favicon": "", // 站点ico(预留)
-    "testEnvUrl": "http://59.61.92.25:8181/yt-ibms-web/",
-    "proEnvUrl": "http://59.61.92.25:8181/yt-ibms-web-dev/",
+    "envTestUrl": "http://59.61.92.25:8181/yt-ibms-web/",
+    "envProUrl": "http://59.61.92.25:8181/yt-ibms-web-dev/",
   }
 ]

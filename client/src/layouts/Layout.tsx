@@ -50,7 +50,7 @@ const PageLayout: React.FC<ILayoutProps> = props => {
         </Helmet>
         <Sider width={100}  className={'fan-layout-sider'}>
           <div  className={'fan-layout-sider-logo'}>
-            <a><img  alt={props.title ? props.title : '前端部署'} src={logo}/></a>
+            <a onClick={()=> history.push('/')}><img  alt={props.title ? props.title : '前端部署'} src={logo}/></a>
           </div>
           <Menu onSelect={(item) =>{
             // setMenuActive([item.key])

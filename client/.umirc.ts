@@ -54,10 +54,10 @@ export default defineConfig({
           component: '@/pages/Notes',
         },
         {
-          path: '/project/:id',
+          path: '/task',
           title: '任务管理',
           hideInMenu: true,
-          component: '@/pages/Project',
+          component: '@/pages/Task',
         },
         {
           component: '404',

@@ -1,7 +1,7 @@
 @import '~antd/lib/style/themes/default.less';
 .codeColumn {
   width:100%;
-  height: calc(100% - 80px);
+  height: calc(100% - 80px); // calc(100vh - 70px - 28px); // 减去顶部栏及底栏高度
   .headerBar {
     font-size: @font-size-lg + 2px;
     color: rgba(255, 255, 255, 1);
@@ -10,6 +10,9 @@
   }
   .actionBar {
     margin-bottom: @padding-sm;
+  }
+  .contentTerm {
+    height: calc(100% - 24px - 32px -  @padding-sm*2)
   }
 }
 
@@ -43,8 +46,16 @@
       }
     }
     .description {
-      color: rgba(255, 255, 255, .4);
+      color: rgba(255, 255, 255, .5);
       font-size: @font-size-sm;
+    }
+  }
+}
+.modalContainer {
+  :global {
+    .ant-form-item-label {
+      width: 100px;
+      text-align: right;
     }
   }
 }

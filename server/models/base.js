@@ -8,7 +8,10 @@ const commons = require('../utils/commons')
 class baseModel {
   constructor() {
     this.name = this.getName();
-    this.schema = new mongoose.Schema(this.getSchema(), { collection: commons.toLowerLine(this.name) }); // 声明模式类型 collection: this.name 可解决mongoose默认创建模式名称为复数
+    this.schema = new mongoose.Schema(this.getSchema(), {
+      collection: commons.toLowerLine(this.name),// 声明模式类型 collection: this.name 可解决mongoose默认创建模式名称为复数,最终集合(表)名会由驼峰式转成下横线形式
+      versionKey: false // 解决mongo文档末尾出现字段"__v：0"
+    });
 
     this.model = mongoose.model(this.name, this.schema)
   }
