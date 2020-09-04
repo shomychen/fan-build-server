@@ -3,7 +3,8 @@ import { fetchNpmClient } from '@/services/common';
 export default {
   namespace: 'task',
   state: {
-    npmClients: []
+    npmClients: [],
+    listenTaskResult: {},
   },
   subscriptions: {},
   effects: {
@@ -25,6 +26,13 @@ export default {
       return {
         ...state,
         npmClients: payload,
+      };
+    },
+    // 更新任务执行进度
+    updateRunTaskResult(state, { payload }) {
+      return {
+        ...state,
+        listenTaskResult: payload,
       };
     },
   },

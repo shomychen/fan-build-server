@@ -1,56 +1,5 @@
 @import '~antd/lib/style/themes/default.less';
-.codeColumn {
-  width:100%;
-  height: calc(100% - 80px); // calc(100vh - 70px - 28px); // 减去顶部栏及底栏高度
-  .headerBar {
-    font-size: @font-size-lg + 2px;
-    color: rgba(255, 255, 255, 1);
-    line-height: 24px;
-    margin-bottom: @padding-sm;
-  }
-  .actionBar {
-    margin-bottom: @padding-sm;
-  }
-  .contentTerm {
-    height: calc(100% - 24px - 32px -  @padding-sm*2)
-  }
-}
 
-// 项目配置信息样式
-.configColumn {
-  width: 100%;
-  padding-bottom: 40px;
-  //position: relative;
-  //overflow: scroll;
-  .headerBar {
-    font-size: @font-size-lg + 2px;
-    color: rgba(255, 255, 255, 1);
-    line-height: 24px;
-    margin-bottom: @padding-sm;
-  }
-  .configGroup {
-    margin-bottom: 30px;
-    max-width: 500px;
-    h2 {
-      color: rgba(255, 255, 255, 1);
-      margin-bottom: @padding-xs;
-      line-height: 26px;
-      &:before {
-        content: '';
-        display: inline-block;
-        width: 3px;
-        height: 16px;
-        background: @primary-color;
-        margin-right: 8px;
-        margin-bottom: -2px;
-      }
-    }
-    .description {
-      color: rgba(255, 255, 255, .5);
-      font-size: @font-size-sm;
-    }
-  }
-}
 .modalContainer {
   :global {
     .ant-form-item-label {

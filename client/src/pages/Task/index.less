@@ -82,10 +82,45 @@
   h2 {
     color: rgba(255, 255, 255, 1);
     margin-bottom: @padding-xs;
+    line-height: 26px;
+    &:before {
+      content: '';
+      display: inline-block;
+      width: 3px;
+      height: 16px;
+      background: @primary-color;
+      margin-right: 8px;
+      margin-bottom: -2px;
+    }
   }
   .description {
-    color: rgba(255, 255, 255, .4);
+    color: rgba(255, 255, 255, .5);
     font-size: @font-size-sm;
+  }
+}
+
+.codeColumn {
+  width:100%;
+  height: calc(100% - 80px); // calc(100vh - 70px - 28px); // 减去顶部栏及底栏高度
+  .actionBar {
+    margin-bottom: @padding-sm;
+  }
+  .contentTerm {
+    height: calc(100% - 24px - 32px -  @padding-sm*2)
+  }
+}
+
+// 项目配置信息样式
+.configColumn {
+  width: 100%;
+  padding-bottom: 40px;
+}
+.modalContainer {
+  :global {
+    .ant-form-item-label {
+      width: 100px;
+      text-align: right;
+    }
   }
 }
 

@@ -6,18 +6,20 @@ import cls from 'classnames';
 import styles from './index.less'
 import projectList from '@/data/project.list.js'
 import request from '../../utils/request';
-import BuildlTerminal from "@/pages/Task/components/BuildlTerminal";
-import InstallTerminal from "@/pages/Task/components/InstallTerminal";
-import InfoForm from "@/pages/Task/components/InfoForm";
+import BuildlTerminal from "./BuildlTerminal";
+import InstallTerminal from "./InstallTerminal";
+import InfoForm from "./InfoForm";
+import taskConfig from '@/data/task.config.js'
 
 const { Sider } = Layout
 
 // @ts-ignore
 const Project = connect(({ task, project, loading }) => ({
   task, project,
+  listenTaskResult: task.listenTaskResult,
   queryLoading: loading.effects['project/fetch_projectInfo'],
 }))((props) => {
-  const { location: { query }, task, dispatch, project, queryLoading } = props;
+  const { location: { query }, task, dispatch, project, queryLoading, listenTaskResult } = props;
   const { npmClients } = task;
   const { active, id } = query;
   const { projectCurrentInfo } = project;
@@ -38,17 +40,32 @@ const Project = connect(({ task, project, loading }) => ({
       description: '执行项目构建及发布',
     }
   ]
-  const currentInfo = useMemo(() => {
-    const filterInfo = projectList.filter(item => item._id === query.id)
-    return filterInfo.length > 0 ? filterInfo[0] : {}
-  }, [query])
+  // 获取当前选中标签的值
   const triggerActive = useMemo(() => {
     const filterActive = triggerList.filter(item => item.key === active);
     return filterActive.length > 0 ? filterActive[0] : {}
   }, [active])
-  const onFinish = values => {
-    console.log('Received values of form: ', values);
-  };
+
+  // 更新任务进行
+  const updateTask = (params: object) => {
+    dispatch({
+      type: 'project/update_project_task',
+      payload: params,
+      callback: (res: any) => {
+        if (res.code !== 200) return
+        if (params.id === query.id) queryProjectInfo()  // 是当前项目的任务进度在变化，则更新当前项目信息
+      }
+    })
+  }
+  useEffect(() => {
+    const { projectId } = listenTaskResult;
+    if (projectId) {
+      updateTask({
+        id: projectId,
+        ...listenTaskResult,
+      })
+    }
+  }, [listenTaskResult])
 
   useEffect(() => {
     dispatch({
@@ -60,6 +77,10 @@ const Project = connect(({ task, project, loading }) => ({
         type: 'project/saveProjectInfo', // 清空当前存储的信息
         payload: {}
       })
+      dispatch({
+        type: 'task/updateRunTaskResult',
+        payload: {},
+      });
     }
   }, [])
   const queryProjectInfo = () => {
@@ -87,8 +108,23 @@ const Project = connect(({ task, project, loading }) => ({
       }
     })
   }
+  // 启动任务
+  const handleRunTask = (key: string) => {
+    if (key === 'CANCEL') {
+      console.log('执行任务取消')
+    } else {
+      updateTask({
+        id: query.id,
+        taskType: key,
+        taskTypeName: taskConfig[key].name,
+        taskState: 'process',
+        taskStateName: '执行中',
+      })
+    }
+
+  }
   return <div className={styles.project}>
-    <Spin spinning={queryLoading} style={{height: '100%'}}>
+    <Spin spinning={queryLoading} style={{ height: '100%' }}>
       <div className={styles.projectBasic}><Button onClick={() => history.push('/')} icon={<RollbackOutlined />}></Button>
         <strong>{projectCurrentInfo.name}</strong>
         {/* 显示任务状态 */}
@@ -115,8 +151,11 @@ const Project = connect(({ task, project, loading }) => ({
             :
             <>
               {
-                active === 'build' ? <BuildlTerminal title={triggerActive.title} projectId={query.id} data={projectCurrentInfo} npmClients={npmClients} />
-                  : <InstallTerminal title={triggerActive.title} projectId={query.id} data={projectCurrentInfo} npmClients={npmClients} />
+                active === 'build' ? <BuildlTerminal title={triggerActive.title} projectId={query.id} data={projectCurrentInfo} npmClients={npmClients}
+                                                     onAction={handleRunTask} />
+                  : <InstallTerminal title={triggerActive.title} projectId={query.id} data={projectCurrentInfo} npmClients={npmClients}
+                                     onAction={handleRunTask}
+                  />
               }
 
             </>

@@ -1,4 +1,4 @@
-import { queryProjectData, queryProjectById, saveProject, updateProject, deleteProject } from '@/services/project';
+import { queryProjectData, queryProjectById, saveProject, updateProject, deleteProject, queryTaskProgress } from '@/services/project';
 import { responseControl } from '@/utils/response';
 
 export default {
@@ -20,7 +20,7 @@ export default {
       }
       if (callback) callback(response);
     },
-    // 查询菜单详情信息(单个菜单信息）
+    // 查询项目详情信息(单个项目信息）
     *fetch_projectInfo({ payload, callback }, { call, put }) {
       const response = yield call(queryProjectById, payload);
       yield put({
@@ -29,21 +29,25 @@ export default {
       });
       if (callback) callback(response);
     },
-    // 创建菜单信息
+    // 创建项目信息
     *create_project({ payload, callback }, { call, put }) {
       const response = yield call(saveProject, payload);
       responseControl('create', response, callback)
     },
-    // 删除菜单信息
+    // 删除项目信息
     *delete_project({ payload, callback }, { call }) {
       const response = yield call(deleteProject, payload);
       responseControl('delete', response, callback)
     },
-    // 修改菜单信息
+    // 修改项目信息
     *update_project({ payload, callback }, { call, put }) {
       const response = yield call(updateProject, payload);
       responseControl('update', response, callback)
     },
+    *update_project_task({ payload, callback }, { call, put }) {
+      const response = yield call(queryTaskProgress, payload);
+      if (callback) callback(response);
+    }
   },
   reducers: {
     saveProjectData(state, { payload }) {

@@ -42,3 +42,11 @@ export async function queryProjectById(params) {
     params,
   })
 }
+
+// 更新项目任务状态进程
+export async function queryTaskProgress(params) {
+  return request(`${baseUrl}/taskUpdate`, {
+    method: 'POST',
+    data: params,
+  })
+}

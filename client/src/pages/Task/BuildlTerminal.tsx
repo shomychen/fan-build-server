@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Space, Modal, Form, Select, Input, Badge } from 'antd';
+import { Button, Space, Modal, Form, Select, Input, Badge, Radio } from 'antd';
 import { CaretRightOutlined, PauseOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import styles from './index.less'
-import Terminal from '@/components/Terminal'
+import Terminal from '@/components/Terminal/index'
 import { send } from '@/socket'
-// import request  from 'umi-request';
-import SockJS from 'sockjs-client';
-import { AttachAddon } from 'xterm-addon-attach';
-import { getTerminalRefIns, setTerminalRefIns } from '@/utils/terminal.js'
+import { getTerminalRefIns, setTerminalRefIns } from '../../utils/terminal.js'
+import BuildModal from './components/BuildModal';
+import { currentSockRemote } from '../../socket';
 
 const { Option } = Select
 
@@ -27,19 +26,15 @@ interface CodeProps {
 let socket: any;
 const BuildTerminal: React.FC<CodeProps> = (props) => {
   const { title, onAction, projectId, data, npmClients = [] } = props;
-  const [isBuildRunning, setBuildRunning] = useState(false);
+  const { taskType, taskState } = data;
+  // const [isBuildRunning, setBuildRunning] = useState(false);
   const [currentTask, setCurrentTask] = useState();
   const [modalVisible, setModalVisible] = useState(false);
+  const [commandDisabled, setCommandDisabled] = useState(false);
   const [form] = Form.useForm();
   const handleControl = (key?: String) => {
     setCurrentTask(key)
     setModalVisible(true)
-    form && form.setFieldsValue({
-      npmClient: 'npm',
-      buildPath: data.buildPath,
-      deploySvnPath: data.deploySvnPath,
-      deployFilePath: data.deployFilePath,
-    })
   }
   const runningTask = (values: object) => {
     // 执行构建命令
@@ -55,22 +50,18 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
         },
         key: projectId,
       }); // 会同时将信息发送到服务端
+      onAction && onAction(currentTask) // 当前执行项目
     }
   }
   // 停止任务
   const cancelTask = () => {
 
   }
-  const handleOk = () => {
-    form
-      .validateFields()
-      .then(values => {
-        // runningTask(values)
-        if (currentTask === 'BUILD') setBuildRunning(true)
-        setModalVisible(false);
-      })
-      .catch(_ => {
-      });
+  const handleOk = (values: object) => {
+    console.log('弹窗的表单', values)
+    runningTask(values)
+    // if (currentTask === 'BUILD') setBuildRunning(true)
+    setModalVisible(false);
   }
   const handleCancel = () => {
     setModalVisible(false)
@@ -111,8 +102,12 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
     );
   };
 
+  // 执行中的任务类型不为INSTALL，也不包括默认DEFUAT且任务状态等于process
+  const isBuildRunning = data && data.taskType === 'BUILD' && data.taskState === 'process'; // 构建进行中
+  const isTaskRunning = data && ['INSTALL', 'DEPLOY'].indexOf(data.taskType) > -1 && data.taskState === 'process' // 其他任务执行中
+
   return <div className={styles.codeColumn}>
-    <div className={styles.headerBar}>{title} {data.status === '0' && <span className={'text-warning'} style={{ fontSize: '12px' }}>请先完善配置信息</span>}</div>
+    <div className={styles.headerBar}>{title}<span className={'text-info'}>当前任务：{data.taskType}当前进度{data.taskState} </span>{data.status === '0' && <span className={'text-warning'} style={{ fontSize: '12px' }}>请先完善配置信息</span>}</div>
     <Space className={styles.actionBar}>
       <Button type={"primary"} onClick={() => handleControl(isBuildRunning ? 'CANCEL' : 'BUILD')}
               disabled={data.status === '0'}
@@ -133,7 +128,6 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
           </>
         )}
       </Button>
-      {/*<Button type={"primary"} onClick={() => handleControl('PUSH')}>发布至SVN</Button>*/}
       <Button type={"primary"} onClick={() => handleControl('BUILDAndDEPLOY')} disabled={isBuildRunning || data.status === '0'}><CaretRightOutlined /> 构建并发布</Button>
       <div className={styles.runningInfo}>
         <Badge status="processing" />
@@ -141,7 +135,6 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
       </div>
       <Button type={"primary"} onClick={() => handleControl('TESTCOPY')}>测试</Button>
       <Button>预留菜单配置</Button>
-      {/*<Button  onClick={() => setModalVisible(true)}>运行环境配置</Button>*/}
     </Space>
     <Terminal
       // defaultValue={'默认值'}
@@ -157,44 +150,14 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
       // }}
     >
     </Terminal>
-    <Modal
+    <BuildModal
       visible={modalVisible}
       title={'环境配置'}
       onOk={handleOk}
       onCancel={handleCancel}
-    >
-      <div className={styles.modalContainer}>
-        <Form name="BuildEnv" form={form}>
-          <Form.Item
-            label={'使用客户端'}
-            name="npmClient"
-            initialValue={'npm'}
-          >
-            <Select style={{ width: 140 }}>
-              {npmClients.map(key => (
-                <Option key={key} value={key}>
-                  {key}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item
-            label={'构建目录'}
-          >
-            {/*<InfoCircleOutlined />*/}
-            <Form.Item
-              noStyle
-              name="buildPath"
-              initialValue={data.buildPath}
-              rules={[{ required: true, message: '请输入构建目录' }]}
-            >
-              <Input style={{ width: 140 }} />
-            </Form.Item>
-            <span className="text-warning" style={{ marginLeft: ' 5px' }}> 为空或‘/’时，构建后需部署至根路径</span>
-          </Form.Item>
-        </Form>
-      </div>
-    </Modal>
+      data={data}
+      npmClients={npmClients}
+    />
   </div>
 }
 export default BuildTerminal;

@@ -108,6 +108,11 @@ let routerConfig = {
       path: 'delete',
       method: 'post'
     },
+    {
+      action: 'updateTask',
+      path: 'taskUpdate',
+      method: 'post'
+    },
   ],
   task: []
   // socketInit: [

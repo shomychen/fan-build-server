@@ -1,14 +1,16 @@
-import React, { useEffect } from 'react';
-import { Button, Space } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { Button, Space, Modal, Form, Select } from 'antd';
 import { CaretRightOutlined, PauseOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import styles from './index.less'
-import Terminal from '@/components/Terminal'
+import Terminal from '@/components/Terminal/index'
 import SockJS from 'sockjs-client';
-// import request  from 'umi-request';
+import { send } from '@/socket'
 import { AttachAddon } from 'xterm-addon-attach';
 import { getTerminalRefIns, setTerminalRefIns } from '@/utils/terminal.js'
 
-interface CodeProps {
+const { Option } = Select;
+
+interface InstallProps {
   /** Layout 类型（项目列表、项目详情，loading 页） */
   // type: 'detail' | 'list' | 'loading';
   // className?: string;
@@ -17,27 +19,55 @@ interface CodeProps {
   // actions?: Array<{}>;
   data?: object;
   projectId?: string;
-  onAction?: (key?: String) => void
+  onAction?: (key?: String) => void,
+  npmClients?: Array;
 }
 
 let socket: any;
-const InstallTerminal: React.FC<CodeProps> = (props) => {
-  const { title, onAction, projectId, data } = props;
-  const { status } = data;
-  const handleControl = (key?: String) => {
-    socket.send('npm run client:dev' + '\r\n');
-    // 执行构建命令
-    // socket.send(JSON.stringify({
-    //   type: key,
-    //   payload: {},
-    //   key: projectId,
-    //   lang: 'zh-cn',
-    //   data,
-    // }) + '\r\n'); // 会同时将信息打印到终端
-    // terminalRef.write(`${key}`); // 编辑器打印命令
-    if (onAction) onAction(key)
-  }
+const InstallTerminal: React.FC<InstallProps> = (props) => {
+  const { title, onAction, projectId, data, npmClients } = props;
+  const [form] = Form.useForm()
+  const [modalVisible, setModalVisible] = useState(false);
   const [terminalRef, setTerminalRef] = React.useState();
+
+  const handleSubmit = (values: object) => {
+    form
+      .validateFields()
+      .then(values => {
+        runningTask('INSTALL', values.npmClient)
+      })
+      .catch(_ => {
+      });
+    setModalVisible(false);
+  }
+  const handleControl = (key?: String) => {
+    if (key === 'INSTALL') setModalVisible(true);
+    if (key === 'CANCEL') {
+      send({
+        type: `@@actions/${key}`,
+        payload: {
+          ...data, // 里面有当前项目的目录路径
+        },
+        key: projectId,
+      });
+    }
+  }
+
+  const runningTask = (key?: String, client: string) => {
+    // 执行打包命令
+    const terminal = getTerminalRefIns('INSTALL', projectId);
+    if (terminal) {
+      terminal.clear(); // 先清空当前命令
+      send({
+        type: `@@actions/${key}`,
+        payload: {
+          ...data, // 里面有当前项目的目录路径
+          npmClient: client
+        },
+        key: projectId,
+      }); // 会同时将信息发送到服务端
+    }
+  }
   const handleInit = async (xterm, fitAddon) => {
     if (!socket) {
       socket = new SockJS('http://localhost:9999/terminal-socket'); // TODO.发布的时候，需要使用相对路径
@@ -88,15 +118,15 @@ const InstallTerminal: React.FC<CodeProps> = (props) => {
     }
   }, [])
 
-  // 执行中的任务类型不为INSTALL，也不包括默认DEFUA且任务状态等于process
-  const isInstallRunning =  data.taskType === 'INSTALL' && data.taskState === 'process'; // 安装进行中
-  const isTaskRunning = isInstallRunning || data.taskType !== 'DEFAULT' ||  data.taskState === 'process'// 其他任务进行中
-  console.log(isInstallRunning,  isTaskRunning)
+  // 执行中的任务类型不为INSTALL，也不包括默认DEFUAT且任务状态等于process
+  const isInstallRunning = data && data.taskType === 'INSTALL' && data.taskState === 'process'; // 安装进行中
+  const isTaskRunning = data && ['BUILD', 'DEPLOY'].indexOf(data.taskType) > -1 && data.taskState === 'process' // 其他任务执行中
+
   return <div className={styles.codeColumn}>
     <div className={styles.headerBar}>{title}</div>
     <Space className={styles.actionBar}>
       <Button type={"primary"} onClick={() => handleControl(isInstallRunning ? 'CANCEL' : 'INSTALL')}
-              disabled={data.status === '0'}
+              disabled={isTaskRunning}
       >
         {isInstallRunning ? (
           <>
@@ -130,6 +160,28 @@ const InstallTerminal: React.FC<CodeProps> = (props) => {
       //   disableStdin: false,
       // }}
     >
-    </Terminal></div>
+    </Terminal>
+    <Modal
+      visible={modalVisible}
+      title={'环境选择'}
+      onOk={handleSubmit}
+      onCancel={() => setModalVisible(false)}>
+      <div className={styles.modalContainer}>
+        <Form name="InstallEnv" form={form}>
+          <Form.Item
+            label={'使用客户端'}
+            name="npmClient"
+          >
+            <Select style={{ width: 140 }}>
+              {npmClients.map(key => (
+                <Option key={key} value={key}>
+                  {key}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item></Form>
+      </div>
+    </Modal>
+  </div>
 }
 export default InstallTerminal;

@@ -90,6 +90,11 @@ const InfoForm: React.FC<InfoFormProps> = (props) => {
                        className={styles.configGroupItem}>
               <Input placeholder="请输入" style={{ maxWidth: '410px' }} />
             </Form.Item>
+            <Form.Item name="buildCommand" label={renderLabel('执行命令', '构建执行的命令')}
+                       // rules={[{ required: true, message: '请输入执行命令' }]}
+                       className={styles.configGroupItem}>
+              <Input placeholder="请输入" style={{ maxWidth: '410px' }} />
+            </Form.Item>
             <Form.Item name="deploySvnPath" label={renderLabel('部署站点SVN地址', '项目发布到站点所在的SVN地址')}
                        rules={[{ required: true, message: '请输入部署站点SVN地址' }]}
                        className={styles.configGroupItem}>

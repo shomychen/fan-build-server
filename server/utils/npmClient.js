@@ -1,11 +1,10 @@
 import spawn from 'cross-spawn';
-import BinaryMirrorConfig from 'binary-mirror-config';
 
-const getSpeedUpEnv = () => BinaryMirrorConfig.china.ENVS;
+// const getSpeedUpEnv = () => BinaryMirrorConfig.china.ENVS;
 
 
 export async function executeCommand(npmClient, args, targetDir, opts) {
-  const extraEnv = getSpeedUpEnv();
+  // const extraEnv = getSpeedUpEnv();
   return new Promise((resolve, reject) => {
     // 详细日志
     if (['tnpm', 'npm', 'cnpm'].includes(npmClient)) {
@@ -14,25 +13,18 @@ export async function executeCommand(npmClient, args, targetDir, opts) {
     const child = spawn(npmClient, args, {
       cwd: targetDir,
       env: {
-        ...process.env,
-        ...extraEnv,
-        ...(opts && opts.unsafePerm ? { npm_config_unsafe_perm: true } : {}),
+        ...opts
       },
     });
     child.stdout.on('data', buffer => {
-      if (process.env.DEBUG) {
-        process.stdout.write(buffer);
-      }
       if (opts.onData) opts.onData(buffer.toString());
     });
     child.stderr.on('data', buffer => {
-      if (process.env.DEBUG) {
-        process.stderr.write(buffer);
-      }
       if (opts.onData) opts.onData(buffer.toString());
     });
     child.on('close', code => {
       if (code !== 0) {
+        // 退出code不为0时，打印报错信息
         reject(new Error(`command failed: ${npmClient} ${args.join(' ')}`));
         return;
       }

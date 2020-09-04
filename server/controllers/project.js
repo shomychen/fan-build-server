@@ -82,6 +82,24 @@ class projectController extends baseController {
       ctx.body = tools.commons.resReturn(null, 400, err.message);
     }
   }
+
+
+  // 更新任务状态
+  async updateTask(ctx) {
+    try {
+      let params = ctx.params;
+      const { id } = params
+      if (!id) return (ctx.body = tools.commons.resReturn(null, 400, 'ID不能为空'));
+      let data = {
+        ...params,
+        update_time: tools.commons.time(),
+      };
+      await this.Model.update(id, data); // 更新数据
+      ctx.body = tools.commons.resReturn(null, 200, '更新任务状态成功');
+    } catch (err) {
+      ctx.body = tools.commons.resReturn(null, 400, err.message);
+    }
+  }
 }
 
 module.exports = projectController;

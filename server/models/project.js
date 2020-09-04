@@ -15,6 +15,7 @@ class projectModel extends baseModel {
       "filePath":  String,
       "svnPath":  String,
       "buildPath": String,
+      "buildCommand": String, // 构建执行命令
       "deployFilePath":  String,
       "deploySvnPath": String,
       "themeColor":  String,
