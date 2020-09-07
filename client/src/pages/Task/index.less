@@ -75,6 +75,11 @@
   color: rgba(255, 255, 255, 1);
   line-height: 24px;
   margin-bottom: @padding-sm;
+  display: flex;
+  .actionBarStep {
+    width: 600px;
+    margin-left: 80px;
+  }
 }
 .configGroup {
   margin-bottom: 30px;
@@ -104,6 +109,7 @@
   height: calc(100% - 80px); // calc(100vh - 70px - 28px); // 减去顶部栏及底栏高度
   .actionBar {
     margin-bottom: @padding-sm;
+    position: relative;
   }
   .contentTerm {
     height: calc(100% - 24px - 32px -  @padding-sm*2)

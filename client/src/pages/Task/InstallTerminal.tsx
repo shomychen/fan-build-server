@@ -73,6 +73,7 @@ const InstallTerminal: React.FC<InstallProps> = (props) => {
           npmClient: client
         },
         key: projectId,
+        taskType: 'INSTALL', // 当前执行任务类型
       }); // 会同时将信息发送到服务端
       onAction && onAction('INSTALL') // 当前执行项目
     }
@@ -80,7 +81,7 @@ const InstallTerminal: React.FC<InstallProps> = (props) => {
 
   // 执行中的任务类型不为INSTALL，也不包括默认DEFUAT且任务状态等于process
   const isInstallRunning = data && data.taskType === 'INSTALL' && data.taskState === 'process'; // 安装进行中
-  const isTaskRunning = data && ['BUILD', 'DEPLOY'].indexOf(data.taskType) > -1 && data.taskState === 'process' // 其他任务执行中
+  const isTaskRunning = data && ['BUILD', 'DEPLOY', 'TESTCOPY'].indexOf(data.taskType) > -1 && data.taskState === 'process' // 其他任务执行中
 
   return <div className={styles.codeColumn}>
     <div className={styles.headerBar}>{title}</div>

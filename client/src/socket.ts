@@ -1,4 +1,4 @@
-
+import SockJS from 'sockjs-client'
 // @ts-ignore
 let sock:any;
 let retries = 0;
@@ -46,7 +46,7 @@ export async function init(opts = {}) {
     }
 
     function initSocket() {
-      sock = new window.SockJS('http://localhost:9999/page-socket');
+      sock = new SockJS('http://localhost:9999/page-socket');
       console.log('初始化socket连接 /page-socket')
       sock.onopen = () => {
         retries = 0;

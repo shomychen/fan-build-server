@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Space, Modal, Form, Select, Input, Badge, Radio } from 'antd';
+import { Button, Space, Modal, Form, Select, Input, Badge, Steps } from 'antd';
 import { CaretRightOutlined, PauseOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import styles from './index.less'
 import Terminal from '@/components/Terminal/index'
 import { send } from '@/socket'
-import { getTerminalRefIns, setTerminalRefIns } from '../../utils/terminal.js'
+import { getTerminalRefIns, setTerminalRefIns } from '@/utils/terminal.js'
 import BuildModal from './components/BuildModal';
 import { currentSockRemote } from '../../socket';
 
 const { Option } = Select
+const { Step } = Steps;
 
 interface CodeProps {
   /** Layout 类型（项目列表、项目详情，loading 页） */
@@ -30,15 +31,22 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
   // const [isBuildRunning, setBuildRunning] = useState(false);
   const [currentTask, setCurrentTask] = useState();
   const [modalVisible, setModalVisible] = useState(false);
+  const [modalTitle, setModalTitle] = useState('环境配置');
   const [commandDisabled, setCommandDisabled] = useState(false);
   const [form] = Form.useForm();
-  const handleControl = (key?: String) => {
+  const handleControl = (key?: String, name ?: String) => {
     setCurrentTask(key)
-    setModalVisible(true)
+    if (key === 'CANCEL') {
+      console.log('需要执行取消操作')
+    } else {
+      setModalVisible(true)
+      setModalTitle(`${name}环境配置`)
+    }
   }
   const runningTask = (values: object) => {
     // 执行构建命令
     const terminal = getTerminalRefIns('BUILD', projectId);
+    console.log(terminal, currentTask)
     if (terminal) {
       terminal.clear(); // 先清空当前命令
       // terminal.write(`${key}`); // 编辑器打印命令
@@ -49,7 +57,9 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
           ...values, // 里面的 buildPath 将被覆盖
         },
         key: projectId,
+        taskType: currentTask, // 当前执行任务类型
       }); // 会同时将信息发送到服务端
+      console.log('有执行下来吗')
       onAction && onAction(currentTask) // 当前执行项目
     }
   }
@@ -60,8 +70,8 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
   const handleOk = (values: object) => {
     console.log('弹窗的表单', values)
     runningTask(values)
-    // if (currentTask === 'BUILD') setBuildRunning(true)
     setModalVisible(false);
+    // if (currentTask === 'BUILD') setBuildRunning(true)
   }
   const handleCancel = () => {
     setModalVisible(false)
@@ -105,18 +115,29 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
   // 执行中的任务类型不为INSTALL，也不包括默认DEFUAT且任务状态等于process
   const isBuildRunning = data && data.taskType === 'BUILD' && data.taskState === 'process'; // 构建进行中
   const isTaskRunning = data && ['INSTALL', 'DEPLOY'].indexOf(data.taskType) > -1 && data.taskState === 'process' // 其他任务执行中
-
+  const isDepolyRunning = data && data.taskType === 'DEPLOY' && data.taskState === 'process'; // 构建进行中
+  console.log('isTaskRunning', isTaskRunning)
   return <div className={styles.codeColumn}>
-    <div className={styles.headerBar}>{title}<span className={'text-info'}>当前任务：{data.taskType}当前进度{data.taskState} </span>{data.status === '0' && <span className={'text-warning'} style={{ fontSize: '12px' }}>请先完善配置信息</span>}</div>
+    <div className={styles.headerBar}>
+      <span>{title}</span>
+      <span className={'text-info'}>当前任务：{data.taskType}当前进度{data.taskState} </span>
+      {data.status === '0' && <span className={'text-warning'} style={{ fontSize: '12px' }}>请先完善配置信息</span>}
+      <Steps size="small" current={1} className={styles.actionBarStep}>
+        <Step title="构建中" />
+        <Step title="发布中" />
+        <Step title="完成" />
+      </Steps>
+    </div>
+
     <Space className={styles.actionBar}>
-      <Button type={"primary"} onClick={() => handleControl(isBuildRunning ? 'CANCEL' : 'BUILD')}
-              disabled={data.status === '0'}
+      <Button type={"primary"} onClick={() => handleControl(isBuildRunning ? 'CANCEL' : 'BUILD', '构建')}
+              disabled={data.status === '0' || isTaskRunning}
       >
         {isBuildRunning ? (
           <>
             <PauseOutlined />
             <span className={styles.runningText}>
-              {' '}停止构建
+              {' '}停止
                   </span>
           </>
         ) : (
@@ -128,12 +149,13 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
           </>
         )}
       </Button>
-      <Button type={"primary"} onClick={() => handleControl('BUILDAndDEPLOY')} disabled={isBuildRunning || data.status === '0'}><CaretRightOutlined /> 构建并发布</Button>
+      <Button type={"primary"} onClick={() => handleControl('DEPLOY', '发布')} disabled={isBuildRunning || data.status === '0'}><CaretRightOutlined />发布</Button>
+      <Button type={"primary"} onClick={() => handleControl('BUILDAndDEPLOY', '构建并发布')} disabled={isBuildRunning || data.status === '0'}><CaretRightOutlined /> 构建并发布</Button>
       <div className={styles.runningInfo}>
         <Badge status="processing" />
         <span>进行中...</span>
       </div>
-      <Button type={"primary"} onClick={() => handleControl('TESTCOPY')}>测试</Button>
+      <Button type={"primary"} onClick={() => handleControl('TESTCOPY', '测试')}>测试</Button>
       <Button>预留菜单配置</Button>
     </Space>
     <Terminal
@@ -152,11 +174,12 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
     </Terminal>
     <BuildModal
       visible={modalVisible}
-      title={'环境配置'}
+      title={modalTitle}
       onOk={handleOk}
       onCancel={handleCancel}
       data={data}
       npmClients={npmClients}
+      taskType={currentTask}
     />
   </div>
 }

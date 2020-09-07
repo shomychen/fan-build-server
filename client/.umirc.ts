@@ -1,10 +1,12 @@
-import {defineConfig, utils} from 'umi';
-import {dark} from '@umijs/ui-theme';
+import { defineConfig, utils } from 'umi';
+import { dark } from '@umijs/ui-theme';
 import LessThemePlugin from 'webpack-less-theme-plugin';
 import { join, parse } from "path";
-const {winPath} = utils;
 
-const {NODE_ENV} = process.env;
+const { winPath } = utils;
+
+const { NODE_ENV } = process.env;
+/*
 const externalCSS = ['xterm/css/xterm.css'];
 const externalJS = [
   `react/umd/react.${NODE_ENV === 'production' ? 'production.min' : 'development'}.js`,
@@ -15,15 +17,15 @@ const externalJS = [
   'xterm/lib/xterm.js',
 ];
 
-const publicPath = NODE_ENV === 'development' ? 'http://localhost:8002/' : '/'; // 开发环境用 / 会无法识别文件
+const publicPath = NODE_ENV === 'development' ? 'http://localhost:8001/' : '/'; // 开发环境用 / 会无法识别文件
+*/
 
 export default defineConfig({
-  // presets: ['@umijs/preset-react'],
-  // plugins: ['@umijs/plugin-esbuild'],
   favicon: '/favicon.ico',
   nodeModulesTransform: {
     type: 'none',
   },
+  // hash: NODE_ENV === 'production',
   routes: [
     // {
     //   path: '/project',
@@ -106,7 +108,7 @@ export default defineConfig({
     );
     return config;
   },
-  links: [
+ /* links: [
     ...externalCSS.map(external => ({
       rel: 'stylesheet',
       href: `${publicPath}${parse(external).base}`,
@@ -125,7 +127,7 @@ export default defineConfig({
     antd: 'window.antd',
     xterm: 'window.Terminal',
     moment: 'moment',
-  },
+  },*/
   antd: {},
   theme: dark,
   proxy: {

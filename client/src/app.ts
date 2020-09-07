@@ -1,13 +1,19 @@
 import { init as initSocket, callRemote, currentSockRemote } from './socket';
 import { message, notification} from "antd";
 import { getDvaApp } from 'umi';
+import { getTerminalRefIns} from './utils/terminal.js'
+
+import SockJS from 'sockjs-client';// 推送监听
 // import { getTerminalRefIns } from './pages/Project/components/terminal.js'
 
 // import debug from '@/debug';
 import debug from 'debug';
 
 const _log = debug('init');
-
+// 获取任务类型，如： @@action/TESTCOPY 返回 TESTCOPY
+const getResultTaskType = (actionName: string)=> {
+  return actionName.substring(actionName.lastIndexOf('/') + 1)
+}
 export async function render(oldRender): void {
   oldRender();
   console.log('执行入口，Init Socket Connection 初始化sockjs连接 监听\'/page-socket\'')
@@ -15,9 +21,18 @@ export async function render(oldRender): void {
   try {
     await initSocket({
       onMessage({ type, payload }) {
-        console.log('推送action类型', type)
-        if (type.indexOf('/progress') !== -1 || type.indexOf('/success') !== -1 || type.indexOf('/failure') !== -1 && window.terminal) {
-          if (type.indexOf('/success') !== -1) {
+        const status = type.substring(type.lastIndexOf('/') + 1); // 执行状态有 ’/process','/success','/failure'结尾
+        console.log('推送action类型', type, '状态', status, '回传参数',payload)
+        const taskType = getResultTaskType(type.substring(0, type.lastIndexOf('/')))
+        console.log(taskType)
+        let terminal;
+        if (['TESTCOPY', 'BUILD', 'BUILDAndDEPLOY', 'DEPLOY'].indexOf(taskType) > -1 ) {
+          terminal = getTerminalRefIns('BUILD', payload.key)  // 判断推送至该项目的“构建发布的终端显示
+        } else {
+          terminal = getTerminalRefIns(taskType, payload.key)
+        }
+        if (['progress', 'success', 'failure'].indexOf(status) > -1 ) {
+          if (status === 'success') {
             console.log('执行成功：success', payload)
             // 原来window.g_app._store 需要用 getDvaApp() 替换
             getDvaApp()._store.dispatch({
@@ -30,16 +45,16 @@ export async function render(oldRender): void {
               description: `${projectName}项目任务执行结果`,
               duration: 8
             })
-            window.terminal.write(`\r\n Process finished with exit code ${payload.data}`)
+            terminal && terminal.write(`\r\n Process finished with exit code ${payload.data}`) // 需要替换下执行的命令行
           }
-          if (type.indexOf('/failure') !== -1) {
+          if (status === 'failure') {
             console.log('命令执行失败：failure', payload)
-            window.terminal.write(`\r\n\x1b[31m[ERROR]\x1b[39m ${payload.data.replace(/\n/g, '\r\n')}`)
+            terminal &&terminal.write(`\r\n\x1b[31m[ERROR]\x1b[39m ${payload.data.replace(/\n/g, '\r\n')}`)
           }
-          if (type.indexOf('/progress') !== -1) {
+          if (status === 'progress') {
             // let str = new TextDecoder().decode(payload.payload);
-            console.log('progress', payload.data)
-            window.terminal.write(`\r\n ${payload.data.replace(/\n/g, '\r\n')}`)
+            console.log('命令执行中：progress', payload.data)
+            terminal && terminal.write(`\r\n ${payload.data.replace(/\n/g, '\r\n')}`)
           }
         }
         if (type.indexOf('/cancel') !== -1) {

@@ -46,7 +46,7 @@ const Project = connect(({ task, project, loading }) => ({
     return filterActive.length > 0 ? filterActive[0] : {}
   }, [active])
 
-  // 更新任务进行
+  // 更新任务进行状态
   const updateTask = (params: object) => {
     dispatch({
       type: 'project/update_project_task',
@@ -108,15 +108,22 @@ const Project = connect(({ task, project, loading }) => ({
       }
     })
   }
-  // 启动任务
+  // 启动或取消任务
   const handleRunTask = (key: string) => {
     if (key === 'CANCEL') {
-      console.log('执行任务取消')
+/*      updateTask({
+        id: query.id,
+        taskType: '',
+        taskTypeName: '',
+        taskState: '',
+        taskStateName: '',
+      })*/
     } else {
+      console.log('执行相关任务', key, taskConfig[key])
       updateTask({
         id: query.id,
         taskType: key,
-        taskTypeName: taskConfig[key].name,
+        taskTypeName: taskConfig[key] ? taskConfig[key].name : '',
         taskState: 'process',
         taskStateName: '执行中',
       })

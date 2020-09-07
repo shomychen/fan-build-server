@@ -90,8 +90,8 @@ const InfoForm: React.FC<InfoFormProps> = (props) => {
                        className={styles.configGroupItem}>
               <Input placeholder="请输入" style={{ maxWidth: '410px' }} />
             </Form.Item>
-            <Form.Item name="buildCommand" label={renderLabel('执行命令', '构建执行的命令')}
-                       // rules={[{ required: true, message: '请输入执行命令' }]}
+            <Form.Item name="buildCommand" label={renderLabel('构建执行命令', '构建执行的命令')}
+                       rules={[{ required: true, message: '请输入构建执行命令' }]}
                        className={styles.configGroupItem}>
               <Input placeholder="请输入" style={{ maxWidth: '410px' }} />
             </Form.Item>
@@ -105,11 +105,16 @@ const InfoForm: React.FC<InfoFormProps> = (props) => {
                        className={styles.configGroupItem}>
               <TextArea placeholder="请输入" style={{ maxWidth: '410px' }} />
             </Form.Item>
+            <Form.Item name="deployCommand" label={renderLabel('部署执行命令', '部署站点执行的命令')}
+                       rules={[{ required: true, message: '部署执行命令' }]}
+                       className={styles.configGroupItem}>
+              <Input placeholder="请输入" style={{ maxWidth: '410px' }} />
+            </Form.Item>
           </div>
         </Col>
       </Row>
       <div className={"toolbarControl"}>
-        <Button type="primary" htmlType="submit" disabled={data.taskState  === 'process'}>
+        <Button type="primary" htmlType="submit" disabled={data.taskState === 'process'}>
           保存
         </Button>
       </div>

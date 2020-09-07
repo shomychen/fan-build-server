@@ -7,11 +7,10 @@ import React, { ReactNode, useRef, useEffect, useState, forwardRef } from 'react
 import { WebLinksAddon } from 'xterm-addon-web-links';
 import { FitAddon } from 'xterm-addon-fit';
 import styles from './index.less';
-import SockJS from 'sockjs-client';// 推送监听
-import { AttachAddon } from 'xterm-addon-attach';
-
-const {Terminal} = window;
-
+// import SockJS from 'sockjs-client';// 推送监听
+// import { AttachAddon } from 'xterm-addon-attach';
+import { Terminal} from 'xterm';
+import 'xterm/css/xterm.css';
 export type TerminalType = XTerminal;
 
 interface ITerminalProps {

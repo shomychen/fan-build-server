@@ -1,3 +1,7 @@
+const join = require("path");
+// import {join} from 'path';
+const rimraf = require("rimraf");
+
 const spawn = require('child_process').spawn;
 
 /**
@@ -105,6 +109,7 @@ async function handleCoreData({ type, payload, key }, { log, send, success, fail
   if (type.startsWith('@@actions')) {
     let targetDir = payload.filePath || process.cwd()
     let npmClient = payload.npmClient || 'npm'
+    console.log('projectID', key)
     switch (type) {
       // 构建
       case '@@actions/BUILD':
@@ -116,14 +121,14 @@ async function handleCoreData({ type, payload, key }, { log, send, success, fail
           console.log('执行命令', runArgs)
           await runCommand(npmClient, runArgs, targetDir, {
             onData: (data) => {
-              console.log('返回的进程日志', data)
               progress({
-                data
+                data,
+                key
               })
             }
           })
-
           success({
+            key,
             data: 0,
             result: {
               ...setResultInfo([payload.name, key, 'BUILD', '构建', 'success', '成功'])
@@ -132,6 +137,7 @@ async function handleCoreData({ type, payload, key }, { log, send, success, fail
         }
         catch (error) {
           failure({
+            key,
             data: error,
             result: {
               ...setResultInfo([payload.name, key, 'BUILD', '构建', 'failure', '失败'])
@@ -142,7 +148,7 @@ async function handleCoreData({ type, payload, key }, { log, send, success, fail
       case '@@actions/BUILDAndDEPLOY':
         try {
           const runArgs = ['run', 'build']
-          await runCommand({ targetDir, npmClient, runArgs }, { log, send, success, failure, progress })
+          await runCommand(npmClient, runArgs, targetDir,)
         }
         catch (e) {
           console.log('child error', e)
@@ -151,8 +157,16 @@ async function handleCoreData({ type, payload, key }, { log, send, success, fail
       // 部署/发布
       case '@@actions/DEPLOY':
         try {
-          const runArgs = ['run', 'build']
-          await runCommand({ targetDir, npmClient, runArgs }, { log, send, success, failure, progress })
+          // const runArgs = ['run', 'build']
+          let runArgs = ['run', payload.deployCommand]  // 构建目录配置为空或者 '/'时，执行npm run build，打包产物需要部署到根目录
+          await runCommand(npmClient, runArgs, targetDir, {
+            onData: (data) => {
+              progress({
+                data,
+                key
+              })
+            }
+          })
         }
         catch (e) {
           console.log('child error', e)
@@ -167,20 +181,26 @@ async function handleCoreData({ type, payload, key }, { log, send, success, fail
         console.log('执行安装包命令')
         try {
           targetDir = 'D:\\Workerspace\\github\\umi-ui\\projectA' // 暂时使用其他目录
+
+          // 重装 node_modules 时先清空，否则可能会失败
+          rimraf.sync(join(targetDir, 'node_modules'));
           await installDeps(npmClient, targetDir, {
             onData: (data) => {
               progress({
-                data
+                data,
+                key
               })
             }
           })
           success({
+            key,
             data: 0,
             msg: '安装成功'
           });
         }
         catch (error) {
           failure({
+            key,
             data: error
           });
         }
@@ -197,11 +217,13 @@ async function handleCoreData({ type, payload, key }, { log, send, success, fail
             onData: (data) => {
               console.log('返回的进程日志', data)
               progress({
+                key,
                 data
               })
             }
           })
           success({
+            key,
             data: 0,
             result: {
               ...setResultInfo([payload.name, key, 'BUILD', '构建', 'success', '成功'])
@@ -210,6 +232,7 @@ async function handleCoreData({ type, payload, key }, { log, send, success, fail
         }
         catch (error) {
           failure({
+            key,
             data: error,
             result: {
               ...setResultInfo([payload.name, key, 'BUILD', '构建', 'failure', '失败'])
@@ -219,6 +242,7 @@ async function handleCoreData({ type, payload, key }, { log, send, success, fail
         break;
 
       default:
+        console.log('其他执行事件')
         break
     }
   } else {
