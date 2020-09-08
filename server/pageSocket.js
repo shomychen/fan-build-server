@@ -2,10 +2,10 @@ const sockjs = require('sockjs'); // 与服务端进行连接
 // const get  = require( 'lodash/get');
 // const os = require('os');
 const chalk = require('chalk');
-const handleCoreData = require('./runTask');
+const {handleCoreData, procGroup} = require('./runTask');
 const conns = {}; // 存储多个连接，并进行保存
 let logs = []; // 存储日志信息
-const initPageSocket =(server)=> {
+const initPageSocket = (server) => {
   const sockjs_echo = sockjs.createServer();
 
   sockjs_echo.on('connection', conn => {
@@ -15,6 +15,7 @@ const initPageSocket =(server)=> {
 
     conns[conn.id] = conn; // 存储连接
 
+    console.log('当前已有的任务集合', procGroup())
     // console.log('当前有的连接数量', conns)
     // this.connctions = conns
     console.log(`🔗 ${chalk.green('Connected to')}: ${conn.id}`);
@@ -80,7 +81,7 @@ const initPageSocket =(server)=> {
     conn.on('data', async message => {
       console.log('接收到由客户端返回的消息', message)
       try {
-        const { type, payload, key } = JSON.parse(message);
+        const { type, payload, key, taskType } = JSON.parse(message);
         console.log(chalk.blue.bold('<<<<'), formatLogMessage(message));
         // console.log(chalk.blue.bold('<<<<'), type, payload, key);
         // if (type === 'INSTALL') {
@@ -89,9 +90,9 @@ const initPageSocket =(server)=> {
         console.log(typeof  type)
 
         if (type.startsWith('@@')) {
-          console.log('返回请求带@@开头，执行handleCoreData', type)
+          console.log('返回请求带@@开头，执行handleCoreData', type, procGroup.key)
           await handleCoreData(
-            { type, payload, key },
+            { type, payload, key, taskType },
             {
               log,
               send,

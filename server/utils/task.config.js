@@ -1,5 +1,8 @@
 // 任务类型及状态值
 module.exports = {
+  'TESTCOPY': {
+    name: '测试拷贝',
+  },
   'DEFAULT': {
     name: '无任务',
   },
@@ -30,6 +33,15 @@ module.exports = {
       'success': '成功',
     }
   },
+  'BUILDAndDEPLOY' : {
+    name: '部署与发布',
+    states: {
+      'init': '未执行',
+      'process': '进行中',
+      'failure': '失败',
+      'success': '成功',
+    }
+  }
 }
 
 module.taskArray = () => {

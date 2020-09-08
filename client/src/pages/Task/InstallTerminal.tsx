@@ -109,7 +109,7 @@ const InstallTerminal: React.FC<InstallProps> = (props) => {
     <Terminal
       onInit={ins => {
         if (ins) {
-          window.terminal = ins
+          // window.terminal = ins
           setTerminalRefIns('INSTALL', projectId, ins);
         }
       }}

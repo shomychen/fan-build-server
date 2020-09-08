@@ -34,22 +34,25 @@ export async function render(oldRender): void {
         if (['progress', 'success', 'failure'].indexOf(status) > -1 ) {
           if (status === 'success') {
             console.log('执行成功：success', payload)
+            terminal && terminal.write(`\r\n Process finished with exit code ${payload.data}`) // 需要替换下执行的命令行
+          }
+          if (status === 'failure') {
+            console.log('命令执行失败：failure', payload)
+            terminal &&terminal.write(`\r\n\x1b[31m[ERROR]\x1b[39m ${payload.data.replace(/\n/g, '\r\n')}`)
+          }
+          // 执行成功或失败
+          if (status === 'failure' || status === 'success') {
             // 原来window.g_app._store 需要用 getDvaApp() 替换
             getDvaApp()._store.dispatch({
               type: 'task/updateRunTaskResult',
               payload: payload.result,
             });
             const {taskTypeName, taskStateName, projectName} = payload.result;
-            notification.success({
+            notification[status === 'success' ? 'success' : 'error']({
               message: `${taskTypeName}${taskStateName}` ,
               description: `${projectName}项目任务执行结果`,
               duration: 8
             })
-            terminal && terminal.write(`\r\n Process finished with exit code ${payload.data}`) // 需要替换下执行的命令行
-          }
-          if (status === 'failure') {
-            console.log('命令执行失败：failure', payload)
-            terminal &&terminal.write(`\r\n\x1b[31m[ERROR]\x1b[39m ${payload.data.replace(/\n/g, '\r\n')}`)
           }
           if (status === 'progress') {
             // let str = new TextDecoder().decode(payload.payload);
@@ -68,7 +71,7 @@ export async function render(oldRender): void {
     console.error('Init socket failed', e);
   }
   try {
-    const { data } = callRemote({ type: '@@project/list' });
+    const { data } = callRemote({ type: '@@project/taskList' });
     console.log('data', data)
   }
   catch (e) {

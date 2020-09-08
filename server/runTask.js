@@ -1,8 +1,10 @@
 const join = require("path");
 // import {join} from 'path';
 const rimraf = require("rimraf");
+const kill = require('tree-kill'); // 杀死任务进程
 
 const spawn = require('child_process').spawn;
+const taskConfig = require("./utils/task.config");
 
 /**
  *
@@ -14,7 +16,7 @@ const spawn = require('child_process').spawn;
  * @return {Promise<void>}
  */
 
-async function runCommand(npmClient, runArgs, targetDir, opts) {
+async function excuCommand(npmClient, runArgs, targetDir, opts) {
   return new Promise((resolve, reject) => {
     // if (['tnpm', 'npm', 'cnpm'].includes(npmClient)) {
     //   runArgs.push('-d');
@@ -38,7 +40,7 @@ async function runCommand(npmClient, runArgs, targetDir, opts) {
         reject(new Error(`command failed: ${npmClient} ${runArgs.join(' ')}`).toString());
         return;
       }
-      resolve();
+      resolve(child);
     });
     /*   // 成功执行，并按流方式打印
        child.stdout.on('data', buffer => {
@@ -68,6 +70,58 @@ async function runCommand(npmClient, runArgs, targetDir, opts) {
 
 }
 
+async function runCommand(npmClient, runArgs, targetDir) {
+  console.log('命令开始执行')
+  const cmdNpmClient = npmClient || 'npm'
+  // spawn方法接受两个参数，第一个是可执行文件，第二个是参数数组。
+  // window上执行的话，需要用.cmd
+  const child = spawn(process.platform === 'win32' ? `${cmdNpmClient}.cmd` : cmdNpmClient, [...runArgs], {
+    cwd: targetDir,
+    // stdio: ['inherit', 'inherit', 'inherit']
+    // stdio: 'pipe'
+    // stdio: ipc ? [null, null, null, 'ipc'] : 'pipe'
+  })
+
+  return child;
+}
+
+function handleChildProcess(child, opts, { npmClient, runArgs }) {
+
+  child.stdout.on('data', buffer => {
+    if (opts.onData) opts.onData(buffer.toString());
+  });
+  child.stderr.on('data', buffer => {
+    if (opts.onData) opts.onData(buffer.toString());
+  });
+  child.on('exit', (code, signal) => {
+    console.log(`子进程因收到信号 ${signal} 而终止`);
+    /*    if (signal === 'SIGINT' || signal === 'SIGTERM') {
+          // 用户取消任务
+          console.log('用户取消任务是SIGINT 吗', signal)
+          opts.onSuccess({
+            state: 'init'
+          })
+        } else if (signal === 'SIGTERM') {
+          // 用户取消任务
+          opts.onSuccess({
+            state: 'init'
+          });
+        } else {
+          code !== 0 ? opts.onFailed(new Error(`command failed: ${npmClient} ${runArgs.join(' ')}`).toString()) : opts.onSuccess({
+            state: 'success'
+          });
+        }*/
+    // 退出code不为0时，打印报错信息
+    code !== 0 ? opts.onFailed(new Error(`command failed: ${npmClient} ${runArgs.join(' ')}`).toString()) : opts.onSuccess(code);
+  });
+
+  // // 销毁进程
+  process.on('exit', () => {
+    child.kill('SIGTERM');
+    console.log('销毁进程')
+  });
+}
+
 async function installDeps(npmClient, targetDir, opts) {
   let args = [];
 
@@ -77,7 +131,7 @@ async function installDeps(npmClient, targetDir, opts) {
     args = ['install'];
   }
 
-  await runCommand(npmClient, args, targetDir, opts);
+  await excuCommand(npmClient, args, targetDir, opts);
 }
 
 function setResultInfo([name, key, type, typeName, state, stateName]) {
@@ -91,6 +145,7 @@ function setResultInfo([name, key, type, typeName, state, stateName]) {
   }
 }
 
+let proc = {}; // 当前执行的进程 （按项目ID分）
 
 /*
  * @param type 当前执行事件类型
@@ -103,78 +158,80 @@ function setResultInfo([name, key, type, typeName, state, stateName]) {
  * @param progress // 发送消息到服务端==>执行
  *
 * */
-async function handleCoreData({ type, payload, key }, { log, send, success, failure, progress }, connection) {
-  console.log('调用相关执行action', type, key)
+async function handleCoreData({ type, payload, key, taskType }, { log, send, success, failure, progress }, connection) {
+  console.log('调用相关执行action', type, key, taskType)
   // console.log('调用相关执行action - 参数', payload)
   if (type.startsWith('@@actions')) {
     let targetDir = payload.filePath || process.cwd()
     let npmClient = payload.npmClient || 'npm'
     console.log('projectID', key)
     switch (type) {
-      // 构建
-      case '@@actions/BUILD':
+      case '@@actions/DEPLOY': // 部署/发布
+      case '@@actions/BUILD':  // 构建
+      case '@@actions/BUILDAndDEPLOY':
         try {
           if (payload.buildCommand) {
             console.log('TODO,没有执行命令，则不执行');
           }
           let runArgs = ['run', payload.buildCommand]  // 构建目录配置为空或者 '/'时，执行npm run build，打包产物需要部署到根目录
+          if (type === '@@actions/DEPLOY') {
+            runArgs = ['run', payload.deployCommand]  // 打包命令
+          }
+          if (type === '@@actions/BUILDAndDEPLOY') {
+            runArgs = ['run', 'build:sub:ci']  // 打包命令
+          }
           console.log('执行命令', runArgs)
-          await runCommand(npmClient, runArgs, targetDir, {
-            onData: (data) => {
-              progress({
-                data,
-                key
-              })
-            }
-          })
-          success({
-            key,
-            data: 0,
-            result: {
-              ...setResultInfo([payload.name, key, 'BUILD', '构建', 'success', '成功'])
-            }
-          });
+          console.log('当前是否已经存在任务', proc[key])
+          proc[key] = await runCommand(npmClient, runArgs, targetDir)
+          console.log('当前是否已经存在任务->>', proc[key])
+          handleChildProcess(proc[key], {
+            onData: (data) => progress({ key, data }),
+            onSuccess: (code) => success({
+              key, data: code,
+              result: { ...setResultInfo([payload.name, key, taskType, taskConfig[taskType].name, 'success', '成功']) }
+            }),
+            onFailed: (error) => failure({
+              key, data: error,
+              result: {
+                ...setResultInfo([payload.name, key, taskType, taskConfig[taskType].name, 'failure', '失败'])
+              }
+            })
+          }, { npmClient, runArgs, targetDir });
         }
         catch (error) {
           failure({
             key,
-            data: error,
+            data: error.toString(),
             result: {
-              ...setResultInfo([payload.name, key, 'BUILD', '构建', 'failure', '失败'])
-            }
-          });
-        }
-        break;
-      case '@@actions/BUILDAndDEPLOY':
-        try {
-          const runArgs = ['run', 'build']
-          await runCommand(npmClient, runArgs, targetDir,)
-        }
-        catch (e) {
-          console.log('child error', e)
-        }
-        break;
-      // 部署/发布
-      case '@@actions/DEPLOY':
-        try {
-          // const runArgs = ['run', 'build']
-          let runArgs = ['run', payload.deployCommand]  // 构建目录配置为空或者 '/'时，执行npm run build，打包产物需要部署到根目录
-          await runCommand(npmClient, runArgs, targetDir, {
-            onData: (data) => {
-              progress({
-                data,
-                key
-              })
+              ...setResultInfo([payload.name, key, taskType, taskConfig[taskType].name, 'failure', '失败'])
             }
           })
-        }
-        catch (e) {
-          console.log('child error', e)
         }
         break;
       // 取消当前执行的任务
       case '@@actions/CANCEL':
-
+        console.log('currentTask', taskType)
+        if (!proc[key]) {
+          failure({
+            key,
+            data: new Error(`${taskType} 进程不存在`).toString(),
+            result: {
+              ...setResultInfo([payload.name, key, taskType, taskConfig[taskType].name, 'failure', '失败'])
+            }
+          });
+          return;
+        }
+        console.log('执行取消进行 pid', proc[key].pid)
+        // 子任务执行结束
+        // if ([TaskState.FAIL].indexOf(this.state) > -1) {
+        //   return;
+        // }
+        // proc.kill('SIGINT');
+        // proc.kill('SIGINT');
+        // proc.kill('SIGTERM');
+        console.log(proc[key].pid)
+        kill(proc[key].pid);
+        delete proc[key]
         break;
       // 安装依赖包
       case '@@actions/INSTALL':
@@ -212,30 +269,41 @@ async function handleCoreData({ type, payload, key }, { log, send, success, fail
             console.log('TODO,没有执行命令，则不执行');
           }
           let runArgs = ['run', 'test:copy']  // 构建目录配置为空或者 '/'时，执行npm run build，打包产物需要部署到根目录
-          console.log('执行命令', runArgs)
-          await runCommand(npmClient, runArgs, targetDir, {
+          proc[key] = await runCommand(npmClient, runArgs, targetDir)
+          handleChildProcess(proc[key], {
             onData: (data) => {
-              console.log('返回的进程日志', data)
               progress({
+                data,
                 key,
-                data
               })
+            },
+            onSuccess: () => {
+              success({
+                key,
+                data: 0,
+                result: {
+                  ...setResultInfo([payload.name, key, taskType, taskConfig[taskType].name, 'success', '成功'])
+                }
+              });
+            },
+            onFailed: (error) => {
+              failure({
+                key,
+                data: error,
+                result: {
+                  ...setResultInfo([payload.name, key, taskType, taskConfig[taskType].name, 'failure', '失败'])
+                }
+              });
             }
-          })
-          success({
-            key,
-            data: 0,
-            result: {
-              ...setResultInfo([payload.name, key, 'BUILD', '构建', 'success', '成功'])
-            }
-          });
+          }, { npmClient, runArgs, targetDir });
         }
         catch (error) {
+          console.log('进行异常')
           failure({
             key,
             data: error,
             result: {
-              ...setResultInfo([payload.name, key, 'BUILD', '构建', 'failure', '失败'])
+              ...setResultInfo([payload.name, key, taskType, taskConfig[taskType].name, 'failure', '失败'])
             }
           });
         }
@@ -250,4 +318,7 @@ async function handleCoreData({ type, payload, key }, { log, send, success, fail
   }
 }
 
-module.exports = handleCoreData
+exports.procGroup = function () {
+  return proc
+}
+exports.handleCoreData = handleCoreData

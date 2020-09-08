@@ -93,18 +93,23 @@ const BuildModal: React.FC<BuildModalProps> = (props) => {
           </Form.Item>
           <span className="text-warning" style={{ marginLeft: ' 5px' }}> 为‘/’时，构建后需部署至根路径</span>
         </Form.Item>
-        <Form.Item label={'构建运行命令'} required>
-          <Form.Item
-            noStyle
-            name="buildCommand"
-            rules={[{ required: true, message: '请输入运行命令' }]}
-          >
-            <Input style={{ width: 140 }} disabled={commandDisabled} />
-          </Form.Item>
-          <span className="text-warning" style={{ marginLeft: ' 5px' }}> 构建目录为‘/’时，默认命令为'build',</span>
-        </Form.Item>
         {
-          taskType === 'DEPLOY' ||  taskType === 'BUILDAndDEPLOY' ? <>
+          taskType !== 'DEPLOY' && <>
+            <Form.Item label={'构建运行命令'} required>
+              <Form.Item
+                noStyle
+                name="buildCommand"
+                rules={[{ required: true, message: '请输入运行命令' }]}
+              >
+                <Input style={{ width: 140 }} disabled={commandDisabled} />
+              </Form.Item>
+              <span className="text-warning" style={{ marginLeft: ' 5px' }}> 构建目录为‘/’时，默认命令为'build',</span>
+            </Form.Item>
+          </>
+        }
+
+        {
+          taskType === 'DEPLOY' || taskType === 'BUILDAndDEPLOY' ? <>
             <Form.Item label={'站点目录'}
                        name="deployFilePath"
                        rules={[{ required: true, message: '请输入部署站点目录' }]}>
@@ -118,7 +123,7 @@ const BuildModal: React.FC<BuildModalProps> = (props) => {
             <Form.Item label={'发布运行命令'}
                        name="deployCommand"
                        rules={[{ required: true, message: '请输入发布运行命令' }]}>
-                <Input style={{ width: 140 }} />
+              <Input style={{ width: 140 }} />
             </Form.Item>
           </> : null
         }
