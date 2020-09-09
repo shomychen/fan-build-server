@@ -234,11 +234,11 @@ async function handleCoreData({ type, payload, key, taskType }, { log, send, suc
         break;
       // 安装依赖包
       case '@@actions/INSTALL':
+        stats(key, 'process', { ...setResultInfo([payload.name, key, taskType, 'process']) })
         progress({ key, data: `>> ${npmClient} ${getNpmClientArgus(npmClient).join(' ')}`, result: { ...setResultInfo([payload.name, key, taskType, 'process']) } })
         try {
           targetDir = 'D:\\Workerspace\\S-Person\\1-fanzhuo\\fan-build-server\\app' // 暂时使用其他目录
           // this.emit(TaskEventType.STD_OUT_DATA, 'Cleaning node_modules...\n');
-          stats(key, 'process', { ...setResultInfo([payload.name, key, taskType, 'process']) })
           // 重装 node_modules 时先清空，否则可能会失败
           progress({ key, data: 'Cleaning node_modules...\n' })
           await cleanNodeModules(targetDir);
@@ -250,7 +250,6 @@ async function handleCoreData({ type, payload, key, taskType }, { log, send, suc
               stats(key, 'success', { ...setResultInfo([payload.name, key, taskType, 'success']) })
               success({
                 key, data: code,
-                result: { ...setResultInfo([payload.name, key, taskType, 'success']) }
               })
             },
             onFailed: (error) => {
@@ -272,6 +271,7 @@ async function handleCoreData({ type, payload, key, taskType }, { log, send, suc
         }
         break;
       case '@@actions/TESTCOPY':
+        stats(key, 'process', { ...setResultInfo([payload.name, key, taskType, 'process']) })
         targetDir = 'D:\\Workerspace\\svn\\webdesign\\trunk\\library\\basic-manage-2.0'
         try {
           if (payload.buildCommand) {
@@ -287,12 +287,14 @@ async function handleCoreData({ type, payload, key, taskType }, { log, send, suc
               })
             },
             onSuccess: () => {
+              stats(key, 'success', { ...setResultInfo([payload.name, key, taskType, 'success']) })
               success({
                 key,
                 data: 0
               });
             },
             onFailed: (error) => {
+              stats(key, 'error', { ...setResultInfo([payload.name, key, taskType, 'failure']) })
               failure({
                 key,
                 data: error

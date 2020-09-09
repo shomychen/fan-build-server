@@ -60,10 +60,11 @@ const Project = connect(({ task, project, loading }) => ({
   useEffect(() => {
     const { projectId } = listenTaskResult;
     if (projectId) {
-      updateTask({
-        id: projectId,
-        ...listenTaskResult,
-      })
+      if (projectId === query.id) queryProjectInfo()  // 是当前项目的任务进度在变化，则更新当前项目信息
+      // updateTask({
+      //   id: projectId,
+      //   ...listenTaskResult,
+      // })
     }
   }, [listenTaskResult])
 

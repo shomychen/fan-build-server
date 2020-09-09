@@ -2,6 +2,7 @@ const sockjs = require('sockjs'); // 与服务端进行连接
 // const get  = require( 'lodash/get');
 // const os = require('os');
 const chalk = require('chalk');
+const fetch = require('node-fetch');
 const { handleCoreData, procGroup } = require('./runTask');
 const conns = {}; // 存储多个连接，并进行保存
 let logs = []; // 存储日志信息
@@ -75,14 +76,26 @@ const initPageSocket = (server) => {
     const stats = (key, status ,result) => {
       const {taskType} = result;
       const msg = `${chalk.gray(`[${key}]`)} ${taskType}`;
-      console.log('更新当前任务状态', msg); // 服务端控制台打包当前日志信息
-      send({
-        type: '@@task/state/update',
-        payload: {
-          status,
-          result
-        },
-      });
+          console.log('更新当前任务状态', msg); // 服务端控制台打包当前日志信息
+      (async () => {
+        result.id = key
+        const response = await fetch('http://127.0.0.1:4000/api/project/taskUpdate', {
+          method: 'POST',
+          body: JSON.stringify(result),
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const json = await response.json();
+        send({
+          type: '@@task/state/update',
+          payload: {
+            status,
+            result
+          },
+        });
+
+        console.log('接口获取事件', json);
+      })();
+
     };
 
     // 断开
@@ -92,7 +105,7 @@ const initPageSocket = (server) => {
     });
 
     conn.on('data', async message => {
-      console.log('接收到由客户端返回的消息', message)
+      console.log('接收到由客户端返回的消息', message.type)
       try {
         const { type, payload, key, taskType } = JSON.parse(message);
         console.log(chalk.blue.bold('<<<<'), formatLogMessage(message));
