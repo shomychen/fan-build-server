@@ -52,6 +52,7 @@ const InstallTerminal: React.FC<InstallProps> = (props) => {
           ...data, // 里面有当前项目的目录路径
         },
         key: projectId,
+        taskType: 'INSTALL'
       });
       onAction && onAction('CANCEL')
     }
@@ -75,7 +76,7 @@ const InstallTerminal: React.FC<InstallProps> = (props) => {
         key: projectId,
         taskType: 'INSTALL', // 当前执行任务类型
       }); // 会同时将信息发送到服务端
-      onAction && onAction('INSTALL') // 当前执行项目
+      // onAction && onAction('INSTALL') // 当前执行项目
     }
   }
 

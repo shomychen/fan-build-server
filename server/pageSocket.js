@@ -2,7 +2,7 @@ const sockjs = require('sockjs'); // 与服务端进行连接
 // const get  = require( 'lodash/get');
 // const os = require('os');
 const chalk = require('chalk');
-const {handleCoreData, procGroup} = require('./runTask');
+const { handleCoreData, procGroup } = require('./runTask');
 const conns = {}; // 存储多个连接，并进行保存
 let logs = []; // 存储日志信息
 const initPageSocket = (server) => {
@@ -71,6 +71,19 @@ const initPageSocket = (server) => {
       });
     };
 
+    // 更新当前任务状态
+    const stats = (key, status ,result) => {
+      const {taskType} = result;
+      const msg = `${chalk.gray(`[${key}]`)} ${taskType}`;
+      console.log('更新当前任务状态', msg); // 服务端控制台打包当前日志信息
+      send({
+        type: '@@task/state/update',
+        payload: {
+          status,
+          result
+        },
+      });
+    };
 
     // 断开
     conn.on('close', () => {
@@ -83,12 +96,6 @@ const initPageSocket = (server) => {
       try {
         const { type, payload, key, taskType } = JSON.parse(message);
         console.log(chalk.blue.bold('<<<<'), formatLogMessage(message));
-        // console.log(chalk.blue.bold('<<<<'), type, payload, key);
-        // if (type === 'INSTALL') {
-        //   testLinkNode(conn) // 测试
-        // }
-        console.log(typeof  type)
-
         if (type.startsWith('@@')) {
           console.log('返回请求带@@开头，执行handleCoreData', type, procGroup.key)
           await handleCoreData(
@@ -99,11 +106,16 @@ const initPageSocket = (server) => {
               success: success.bind(this, type),
               failure: failure.bind(this, type),
               progress: progress.bind(this, type),
+              stats
             },
-            conn
+            logs
           );
         } else {
-          console.log('返回另外一种异常，如org.umi.开头', key)
+          console.log('返回另外一种监听事件，项目ID：', key, type)
+          success(type, {
+            result: '测试：返回结果',
+            key
+          })
           // assert 断言 当第一个参数对应的布尔值为true时，不会有任何提示，返回undefined。当第一个参数对应的布尔值为false时，会抛出一个错误，该错误的提示信息就是第二个参数设定的字符串。
           // assert(this.servicesByKey[key], `service of key ${key} not exists.`);
           // const service = this.servicesByKey[key];

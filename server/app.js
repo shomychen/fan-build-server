@@ -36,35 +36,6 @@ const testLinkNode = (conn) => {
 
 }
 
-const handleChildProcess = (proc, failure, type) => {
-  proc.on('message', msg => {
-    console.log(msg)
-    // this.updateState(msg);
-  });
-
-  proc.stdout.setEncoding('utf8');
-  proc.stdout.on('data', log => {
-    console.log(log)
-    // this.emit(TaskEventType.STD_OUT_DATA, log);
-  });
-
-  proc.stderr.setEncoding('utf8');
-  proc.stderr.on('data', log => {
-    console.log('error,', log)
-    // failure({type, payload: log});
-  });
-
-  proc.on('exit', (code, signal) => {
-    // this.state = code === 1 ? TaskState.FAIL : TaskState.INIT;
-    // (async () => {
-    //   this.emit(TaskEventType.STATE_EVENT, await this.getDetail());
-    // })();
-  });
-
-  process.on('exit', () => {
-    proc.kill('SIGTERM');
-  });
-}
 
 // 2. koa server
 const app = new Koa();
@@ -76,7 +47,6 @@ app.use(router.routes()) // 引用路由
   .use(router.allowedMethods())  // 作用： 这是官方文档的推荐用法,我们可以看到router.allowedMethods()用在了路由匹配router.routes()之后,所以在当所有路由中间件最后调用.此时根据ctx.status设置response响应头
 
 const server = http.createServer(app.callback());
-console.log('当前文件内部this', this)
 
 initPageSocket.call(this, server); // socket '/page-socket'
 initTerminal.call(this, server); // 另外一个socket '/terminal-socket'

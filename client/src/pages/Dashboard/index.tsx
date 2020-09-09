@@ -66,7 +66,7 @@ const Dashboard = connect(({ project, loading }) => ({
     }
   }
   const handleTitleClick = (data) => {
-    history.push(`/task/?id=${data._id}&&active=info`)
+    history.push(`/task?id=${data._id}&&active=info`)
   }
   const handleSubmitProject = () => {
     form

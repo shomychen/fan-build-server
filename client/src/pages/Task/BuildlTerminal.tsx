@@ -1,15 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Space, Modal, Form, Select, Input, Badge, Steps } from 'antd';
+import { Button, Space } from 'antd';
 import { CaretRightOutlined, PauseOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import styles from './index.less'
 import Terminal from '@/components/Terminal/index'
 import { send } from '@/socket'
 import { getTerminalRefIns, setTerminalRefIns } from '@/utils/terminal.js'
+import { useInit } from '@/hooks'
 import BuildModal from './components/BuildModal';
-import { currentSockRemote } from '../../socket';
 
-const { Option } = Select
-const { Step } = Steps;
 
 interface CodeProps {
   /** Layout 类型（项目列表、项目详情，loading 页） */
@@ -18,6 +16,7 @@ interface CodeProps {
   title?: string;
   // active: 'install' | 'build';
   // actions?: Array<{}>;
+  dispatch: any;
   data?: object;
   projectId?: string;
   onAction?: (key?: String) => void,
@@ -26,12 +25,14 @@ interface CodeProps {
 
 let socket: any;
 const BuildTerminal: React.FC<CodeProps> = (props) => {
-  const { title, onAction, projectId, data, npmClients = [] } = props;
-  const { taskType, taskState } = data;
+  const { title, onAction, projectId, data, npmClients = [], dispatch } = props;
+  const { taskType, taskState, filePath } = data;
+  const [init] = useInit(data);
   // const [isBuildRunning, setBuildRunning] = useState(false);
   const [currentTask, setCurrentTask] = useState();
   const [modalVisible, setModalVisible] = useState(false);
   const [modalTitle, setModalTitle] = useState('环境配置');
+  const [log, setLog] = useState('');
   const handleControl = (key?: String, name ?: String) => {
     setCurrentTask(key)
     if (key === 'CANCEL') {
@@ -52,10 +53,8 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
   const runningTask = (values: object) => {
     // 执行构建命令
     const terminal = getTerminalRefIns('BUILD', projectId);
-    console.log(terminal, currentTask)
     if (terminal) {
       terminal.clear(); // 先清空当前命令
-      // terminal.write(`${key}`); // 编辑器打印命令
       send({
         type: `@@actions/${currentTask}`,
         payload: {
@@ -65,12 +64,10 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
         key: projectId,
         taskType: currentTask, // 当前执行任务类型
       }); // 会同时将信息发送到服务端
-      console.log('有执行下来吗') // TODO启动进程后才执行更新任务状态
-      onAction && onAction(currentTask) // 当前执行项目
     }
   }
   const handleOk = (values: object) => {
-    console.log('弹窗的表单',  values )
+    console.log('弹窗的表单', values)
     runningTask(values)
     setModalVisible(false);
     // if (currentTask === 'BUILD') setBuildRunning(true)
@@ -78,42 +75,31 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
   const handleCancel = () => {
     setModalVisible(false)
   }
-  const renderRunningInfo = ({ state }) => {
-    if (!state || state === 'INIT') {
-      return null;
-    }
-    const map = {
-      ING: {
-        status: 'process',
-        text: (
-          <span>
-            {hasError
-              ? '启动失败'
-              : '启动中...'}
-          </span>
-        ),
-      },
-      SUCCESS: {
-        status: 'success',
-        text: (
-          <span>
-           构建成功
-          </span>
-        ),
-      },
-      FAIL: {
-        status: 'error',
-        text: <span>构建失败</span>,
-      },
-    };
-    return (
-      <div className={styles.runningInfo}>
-        <Badge status={map[state].status} />
-        <span>{map[state].text}</span>
-      </div>
-    );
-  };
 
+  useEffect(() => {
+    if (!init) {
+      return () => {};
+    }
+    dispatch({
+      type: `task/getTaskDetail`,
+      payload: {
+        taskType,
+        log: true,
+        dbPath: filePath,
+        key: projectId,
+        callback: ({ log }) => {
+          setLog(log);
+        },
+      },
+    });
+
+    return () => {
+      // const terminal = getTerminalRefIns(taskType, projectId);
+      // if (terminal) {
+      //   terminal.clear();
+      // }
+    };
+  }, [init]);
   useEffect(() => {
     setCurrentTask(data.taskType)
   }, [data])
@@ -122,17 +108,16 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
   const isTaskRunning = data && ['INSTALL'].indexOf(data.taskType) > -1 && data.taskState === 'process' // 安装包任务执行中
   const isDeployRunning = data && data.taskType === 'DEPLOY' && data.taskState === 'process'; // 发布进行中
   const isBuAndDeRunning = data && data.taskType === 'BUILDANDDEPLOY' && data.taskState === 'process'; // 构建进行中
-  console.log('isTaskRunning', isTaskRunning, 'isDeployRunning', isDeployRunning,'isBuAndDeRunning:', isBuAndDeRunning)
   return <div className={styles.codeColumn}>
     <div className={styles.headerBar}>
       <span>{title}</span>
-      <span className={'text-info'}>当前任务：{data.taskType}当前进度{data.taskState} </span>
-      {data.status === '0' && <span className={'text-warning'} style={{ fontSize: '12px' }}>请先完善配置信息</span>}
-      <Steps size="small" current={1} className={styles.actionBarStep}>
+      {/*<span className={'text-info'}>当前任务：{data.taskType}当前进度{data.taskState} </span>*/}
+      {data.status === '0' && <span className={'text-warning'} style={{ marginLeft: '5px', fontSize: '12px' }}>请先完善项目配置信息</span>}
+      {/* <Steps size="small" current={1} className={styles.actionBarStep}>
         <Step title="构建中" />
         <Step title="发布中" />
         <Step title="部署完成" />
-      </Steps>
+      </Steps>*/}
     </div>
 
     <Space className={styles.actionBar}>
@@ -141,37 +126,26 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
       >
         {isBuildRunning ? (
           <>
-            <PauseOutlined />
-            <span className={styles.runningText}>
-              {' '}停止
-                  </span>
+            <PauseOutlined /><span className={styles.runningText}>停止</span>
           </>
         ) : (
           <>
-            <CaretRightOutlined />
-            <span className={styles.runningText}>
-              {' '}构建
-            </span>
+            <CaretRightOutlined /><span className={styles.runningText}>构建</span>
           </>
         )}
       </Button>
-      <Button type={"primary"} onClick={() => handleControl(isDeployRunning ? 'CANCEL' : 'DEPLOY',  '发布')} disabled={data.status === '0' || isTaskRunning || isBuildRunning}>
+      <Button type={"primary"} onClick={() => handleControl(isDeployRunning ? 'CANCEL' : 'DEPLOY', '发布')} disabled={data.status === '0' || isTaskRunning || isBuildRunning}>
         {isDeployRunning ? (
           <>
             <PauseOutlined />
-            <span className={styles.runningText}>
-              {' '}停止
-                  </span>
+            <span className={styles.runningText}>停止</span>
           </>
         ) : (
           <>
-            <CaretRightOutlined />
-            <span className={styles.runningText}>
-              {' '}发布
-            </span>
+            <CaretRightOutlined /><span className={styles.runningText}>发布</span>
           </>
         )}</Button>
-      <Button>预留菜单配置</Button>
+      <Button>预留菜单配置 </Button>
       <Button type={"primary"} onClick={() => handleControl('TESTCOPY', '测试')}>测试</Button>
       <Button type={"primary"} onClick={() => handleControl('CANCEL', '停止')}>停止</Button>
       <Button type={"primary"} onClick={() => handleControl('BUILDAndDEPLOY', '构建并发布')} disabled={isBuildRunning || data.status === '0'}><CaretRightOutlined />预留 构建并发布</Button>

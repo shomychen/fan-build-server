@@ -100,6 +100,10 @@ const Project = connect(({ task, project, loading }) => ({
       payload: {
         ...values,
         status: '1', // 将项目状态设置为 1，表示基础信息已配置，可操作构建与发布任务
+        taskType: '', // 将任务初始化
+        taskTypeName: '',// 将任务初始化
+        taskState: '',// 将任务初始化
+        taskStateName: '',// 将任务初始化
         id: query.id
       },
       callback: (res) => {
@@ -111,13 +115,13 @@ const Project = connect(({ task, project, loading }) => ({
   // 启动或取消任务
   const handleRunTask = (key: string) => {
     if (key === 'CANCEL') {
-/*      updateTask({
-        id: query.id,
-        taskType: '',
-        taskTypeName: '',
-        taskState: '',
-        taskStateName: '',
-      })*/
+      /*      updateTask({
+              id: query.id,
+              taskType: '',
+              taskTypeName: '',
+              taskState: '',
+              taskStateName: '',
+            })*/
     } else {
       console.log('执行相关任务', key, taskConfig[key])
       updateTask({
@@ -144,7 +148,7 @@ const Project = connect(({ task, project, loading }) => ({
       <div className={styles.projectSide}>
         {
           triggerList.map(item => <div key={item.key} className={cls(styles.trigger, active === item.key ? styles.active : '')}
-                                       onClick={() => history.push(`/task/?id=${query.id}&&active=${item.key}`)}>
+                                       onClick={() => history.push(`/task?id=${query.id}&&active=${item.key}`)}>
             <div className={styles.title}>{item.title}</div>
             <div className={styles.description}>{item.description}</div>
           </div>)
@@ -158,11 +162,9 @@ const Project = connect(({ task, project, loading }) => ({
             :
             <>
               {
-                active === 'build' ? <BuildlTerminal title={triggerActive.title} projectId={query.id} data={projectCurrentInfo} npmClients={npmClients}
-                                                     onAction={handleRunTask} />
-                  : <InstallTerminal title={triggerActive.title} projectId={query.id} data={projectCurrentInfo} npmClients={npmClients}
-                                     onAction={handleRunTask}
-                  />
+                active === 'build'
+                  ? <BuildlTerminal dispatch={dispatch} title={triggerActive.title} projectId={query.id} data={projectCurrentInfo} npmClients={npmClients} />
+                  : <InstallTerminal dispatch={dispatch} title={triggerActive.title} projectId={query.id} data={projectCurrentInfo} npmClients={npmClients} />
               }
 
             </>

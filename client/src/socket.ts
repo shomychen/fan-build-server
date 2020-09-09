@@ -109,7 +109,7 @@ export function callRemote<T = object, K = object>(
       JSON.stringify({
         ...action,
         // $lang: 'zh-CN' ,// getLocale(),
-        $key: window.g_currentProject, // 获取当前项目ID
+        // $key: window.g_currentProject, // 获取当前项目ID
       }),
     );
   });
@@ -131,7 +131,7 @@ export function listenRemote(action) {
     }
   };
 }
-
-export function currentSockRemote() {
-  return sock
-}
+//
+// export function currentSockRemote() {
+//   return sock
+// }
