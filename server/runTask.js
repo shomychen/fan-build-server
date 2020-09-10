@@ -5,7 +5,6 @@ const kill = require('tree-kill'); // 杀死任务进程
 
 const { spawn, exec } = require('child_process');
 const taskConfig = require("./utils/task.config");
-const fetch = require('node-fetch');
 const request = require('./utils/request');
 
 let proc = {}; // 当前执行的进程 （按项目ID分）
@@ -91,7 +90,7 @@ function runCommand(npmClient, targetDir, runArgs) {
   return child;
 }
 
-async function handleChildProcess(child, { progress, success, failure, stats }, { npmClient, runArgs, key, payload, taskType },) {
+async function handleChildProcess(child, { progress, success, failure, stats, log }, { npmClient, runArgs, key, payload, taskType, logId },) {
   child.stdout.on('data', buffer => {
     if (progress) progress({ key, data: buffer.toString() })
   });
@@ -102,7 +101,9 @@ async function handleChildProcess(child, { progress, success, failure, stats }, 
     console.log(`子进程因收到信号 ${signal} 而终止`);
     console.log('runArgs', runArgs)
     delete proc[key]; // 删除当前项目处理中的进程
-    stats(key, code !== 0 ? 'error' : 'success', { ...setResultInfo([payload.name, key, taskType, code !== 0 ? 'failure' : 'success']) })
+    const result = setResultInfo([payload.name, key, taskType, code !== 0 ? 'failure' : 'success'])
+    log('update', { id: logId, ...result })
+    stats(key, code !== 0 ? 'error' : 'success', { ...result })
     if (code !== 0) {
       failure({
         key,
@@ -164,7 +165,7 @@ async function cleanNodeModules(targetDir) {
 
 // 更新SVN文件
 async function updateProjectSvn(cwd) {
-  return new Promise((resolve, reject)=> {
+  return new Promise((resolve, reject) => {
     exec(`svn up ${cwd}`, err => {
       if (err) return reject(err); // 返回 error
       resolve()
@@ -219,35 +220,38 @@ async function handleCoreData({ type, payload, key, taskType }, { log, send, suc
         if (type === '@@actions/BUILDAndDEPLOY') {
           runArgs = ['run', 'build:sub:ci']  // 构建与打包命令
         }
-        // Step1.更新操作日志
-        log('info', `${taskType} project: ${payload.name}`);
+        // Step1.创建操作日志
+        const createLogInfo = await log('create', { ...setResultInfo([payload.name, key, taskType, 'process']) }, key);
+        console.log(createLogInfo)
+        const { data } = createLogInfo;
         // Step2.更新当前任务状态
         stats(key, 'process', { ...setResultInfo([payload.name, key, taskType, 'process']) })
+        console.log('执行返回日志callID', createLogInfo.data)
+        console.log('更新当前任务状态===>>>')
         // Step3.显示当前执行命令
         progress({ key, data: `\x1b[1;36m> Executing ${npmClient} ${runArgs.join(' ')}...\x1b[39m\n` })
         // Step4.更新当前执行项目的SVN
-        await updateProjectSvn(targetDir).then(()=> {
+        await updateProjectSvn(targetDir).then(() => {
           progress({ key, data: `\x1b[1;32m> Svn update 【${targetDir}】 success.\x1b[39m\n` })
-        }).catch(e=> {
+        }).catch(e => {
           failure({ key, data: `\x1b[1;31m Svn update  【${targetDir}】 failure!\x1b[39m\n` })
+          log('update', { id: data ? data._id : undefined, ...setResultInfo([payload.name, key, taskType, 'failure']) })
         })
         try {
           console.log('执行命令', runArgs)
           console.log('当前是否已经存在任务', proc[key])
           proc[key] = runCommand(npmClient, targetDir, runArgs)
-          await handleChildProcess(proc[key], { progress, success, failure, stats, }, { npmClient, runArgs, targetDir, key, payload, taskType });
+          await handleChildProcess(proc[key], { progress, success, failure, stats, log }, { npmClient, runArgs, targetDir, key, payload, taskType, logId: data ? data._id : undefined });
         }
         catch (error) {
-          failure({
-            key,
-            data: error.toString()
-          })
+          failure({ key, data: error.toString() })
+          log('update', { id: data ? data._id : undefined, ...setResultInfo([payload.name, key, taskType, 'failure']) })
           stats(key, 'error', { ...setResultInfo([payload.name, key, taskType, 'failure']) })
         }
         break;
       // 取消当前执行的任务(销毁子进程)
       case '@@actions/CANCEL':
-        console.log('currentTask', taskType)
+        console.log('currentTask 进程不存在', taskType)
         if (!proc[key]) {
           failure({
             key,

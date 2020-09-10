@@ -5,7 +5,7 @@ import { queryLogData } from '@/services/log';
 
 const getTaskDetail = async (taskType, log = true, dbPath = '', key,) =>
   await callRemote({
-    type: 'tasks/detail',
+    type: 'tasks/detail', // 获取任务详情，即以往的任务进程消息
     key,
     payload: {
       type: taskType,
@@ -26,7 +26,6 @@ export default {
   subscriptions: {
     setup({ history, dispatch }) {
       history.listen(({ pathname, query }) => {
-
         if (init) {
           return;
         }
@@ -35,20 +34,30 @@ export default {
           init = true;
           // 接收状态通知
           // 日志更新
-          console.log('日志更新， 监听')
+          console.log('操作日志更新， 监听')
           listenRemote({
             type: '@@log/message',
+            onMessage: (payload) => {
+              console.log('监听到操作日志更新 @@log/message', payload)
+              dispatch({
+                type: 'fetch_task_logData',
+                payload: {
+                  projectId: query.id
+                },
+              });
+            },
+          });
+          console.log('任务子进程日志 @@task/log， 监听')
+          listenRemote({
+            type: '@@task/log',
             onMessage: ({
                           date,
                           message,
                           type,
                         }) => {
-              console.log('监听 @@log/message', date,
+              console.log('监听 @@task/log', date,
                 message,
                 type)
-              // if (!log) {
-              //   return;
-              // }
               dispatch({
                 type: 'writeLog',
                 payload: {

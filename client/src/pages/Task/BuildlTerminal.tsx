@@ -54,7 +54,7 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
     // 执行构建命令
     const terminal = getTerminalRefIns('BUILD', projectId);
     if (terminal) {
-      terminal.clear(); // 先清空当前命令
+      // terminal.clear(); // 先清空当前命令
       send({
         type: `@@actions/${currentTask}`,
         payload: {
@@ -89,7 +89,8 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
         dbPath: filePath,
         key: projectId,
         callback: ({ log }) => {
-          setLog(log);
+          console.log('初始化日志', log)
+          setLog('需要赋值初始化日志');
         },
       },
     });
@@ -152,7 +153,7 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
       <Button type={"primary"} onClick={() => handleControl('BUILDAndDEPLOY', '构建并发布')} disabled={isBuildRunning || data.status !== '1'}><CaretRightOutlined />预留 构建并发布</Button>
     </Space>
     <Terminal
-      // defaultValue={'默认值'}
+      defaultValue={log}
       onInit={ins => {
         if (ins) {
           // window.terminal = ins // 初始到的window

@@ -3,6 +3,8 @@ const sockjs = require('sockjs'); // 与服务端进行连接
 // const os = require('os');
 const chalk = require('chalk');
 const fetch = require('node-fetch');
+const request = require('./utils/request');
+const requestFetch = require('./utils/fetchRequest');
 const { handleCoreData, procGroup } = require('./runTask');
 const conns = {}; // 存储多个连接，并进行保存
 let logs = []; // 存储日志信息
@@ -54,37 +56,36 @@ const initPageSocket = (server) => {
       send({ type: `${type}/progress`, payload });
     }
 
-    const log = (type, message) => {
+    // type: create/update
+    const log = (type, message, key) => {
       // 拼装日志消息消息
-      const payload = {
-        date: +new Date(),
-        type,
-        message,
-      };
-      const msg = `${chalk.gray(`[${type}]`)} ${message}`;
-      console.log('回传日志信息', msg)
+      // const payload = {
+      //   date: +new Date(),
+      //   type,
+      //   message,
+      // };
+      const msg = `${chalk.bgCyan(`[${type}]日志=>`)} ${JSON.stringify(message)}`;
       const logFunc = type === 'error' ? console.error : console.log;
-      logFunc(msg); // 服务端控制台打包当前日志信息
-      logs.push(payload);
-      send({
-        type: '@@log/message',
-        payload,
-      });
+      logFunc(msg);
+      const logUpdateResut = (async () => {
+        const json = await request(type === 'create' ? '/api/log/save' : '/api/log/update', 'POST', message)
+        send({
+          type: '@@log/message',
+          payload: json,
+        });
+        return json
+      })();
+      return logUpdateResut;
     };
 
     // 更新当前任务状态
-    const stats = (key, status ,result) => {
-      const {taskType} = result;
+    const stats = (key, status, result) => {
+      const { taskType } = result;
       const msg = `${chalk.gray(`[${key}]`)} ${taskType}`;
-          console.log('更新当前任务状态', msg); // 服务端控制台打包当前日志信息
+      console.log('更新当前任务状态', msg); // 服务端控制台打包当前日志信息
       (async () => {
         result.id = key
-        const response = await fetch('http://127.0.0.1:4000/api/project/taskUpdate', {
-          method: 'POST',
-          body: JSON.stringify(result),
-          headers: { 'Content-Type': 'application/json' }
-        });
-        const json = await response.json();
+        const json = await request('/api/project/taskUpdate', 'POST', result)
         send({
           type: '@@task/state/update',
           payload: {
@@ -92,10 +93,8 @@ const initPageSocket = (server) => {
             result
           },
         });
-
-        console.log('接口获取事件', json);
+        console.log('接口获取事件=>>更新当前任务状态', json);
       })();
-
     };
 
     // 断开

@@ -21,7 +21,7 @@ export async function render(oldRender): void {
   try {
     await initSocket({
       onMessage({ type, payload }) {
-        // 任务相关执行事件
+        // 任务相关执行事件 TODO。执行终端打印需要放到model内监听事件处理
         if (type.startsWith('@@actions')) {
           const status = type.substring(type.lastIndexOf('/') + 1); // 执行状态有 ’/process','/success','/failure'结尾
           console.log('推送action类型', type, '状态', status, '回传参数', payload)
@@ -36,11 +36,11 @@ export async function render(oldRender): void {
           if (['progress', 'success', 'failure'].indexOf(status) > -1) {
             if (status === 'success') {
               console.log('执行成功：success', payload)
-              terminal && terminal.write(`\r\n Process finished with exit code ${payload.data}`) // 需要替换下执行的命令行
+              terminal && terminal.write(`\r\n Process finished with exit code ${payload.data}\n`) // 需要替换下执行的命令行
             }
             if (status === 'failure') {
               console.log('命令执行失败：failure', payload)
-              terminal && terminal.write(`\r\n\x1b[31m[ERROR]\x1b[39m ${payload.data.replace(/\n/g, '\r\n')}`)
+              terminal && terminal.write(`\r\n\x1b[31m[ERROR]\x1b[39m ${payload.data.replace(/\n/g, '\r\n')}\n`)
             }
             // 执行成功或失败
             if (status === 'failure' || status === 'success') {

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Layout, Spin, Drawer, Tag, Table,Badge} from 'antd';
+import { Button, Layout, Spin, Drawer, Tag, Table, Badge } from 'antd';
 import { RollbackOutlined, ProfileOutlined } from '@ant-design/icons';
 import { history, connect } from 'umi';
 import cls from 'classnames';
@@ -7,7 +7,7 @@ import styles from './index.less'
 import BuildlTerminal from "./BuildlTerminal";
 import InstallTerminal from "./InstallTerminal";
 import InfoForm from "./InfoForm";
-import {formatTime} from '@/utils/common'
+import { formatTime } from '@/utils/common'
 
 const { Sider } = Layout
 
@@ -133,15 +133,21 @@ const Project = connect(({ task, project, loading }) => ({
       title: '执行状态',
       dataIndex: 'taskStateName',
       key: 'taskStateName',
-      render: (text, row )=> {
-        return <Badge status={row.taskState}>{text}</Badge>
+      render: (text, row) => {
+        if (!row.taskStateName) return '-'
+        let status = row.taskState
+        if (row.taskState === 'process') status = 'processing'
+        if (row.taskState === 'failure') status = 'error'
+        return <Badge status={status} text={text} />
       }
     },
     {
       title: '执行时间',
       dataIndex: 'createTime',
       key: 'createTime',
-      render: text=> formatTime(text)
+      align: 'center',
+      width: 160,
+      render: text => formatTime(text)
     },
   ]
   return <div className={styles.project}>
@@ -181,7 +187,7 @@ const Project = connect(({ task, project, loading }) => ({
         }
       </div>
     </Spin>
-    <Drawer visible={drawerVisible} title="操作日志" width={500}>
+    <Drawer visible={drawerVisible} title="操作日志" width={450} onClose={() => setDrawerVisible(false)}>
       <Table rowKey={'_id'} dataSource={taskLogData} columns={columns} size="small" />
     </Drawer>
   </div>

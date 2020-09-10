@@ -45,16 +45,16 @@ class logController extends baseController {
   async createSave(ctx) {
     try {
       let params = ctx.params;
-      const { name } = params // ctx.request.body;
-      if (!name) (ctx.body = tools.commons.resReturn(null, 400, '项目名称不能为空'));
+      const { projectName } = params // ctx.request.body;
+      if (!projectName) (ctx.body = tools.commons.resReturn(null, 400, '项目名称不能为空'));
       let data = {
         ...params,
         createTime: tools.commons.time(),
         updateTime: tools.commons.time(),
       };
-
-      await this.Model.save(data); // 创建数据
-      ctx.body = tools.commons.resReturn(null, 200, '新增成功');
+      let result = await this.Model.save(data); // 创建数据
+      // console.log('创建成功的结果数据', result)
+      ctx.body = tools.commons.resReturn({_id: result._id}, 200, '新增成功');
     } catch (err) {
       ctx.body = tools.commons.resReturn(null, 402, err.message);
     }

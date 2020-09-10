@@ -11,7 +11,7 @@ class logModel extends baseModel {
   // 当前model内 类型处理
   getSchema() {
     return {
-      "name": String, // 项目名称
+      "projectName": String, // 项目名称
       "projectId": String,// 项目ID
       "taskType": String, // 任务类型： 'BUILD'表示项目处理构建中，'DEFAULT'表示项目无任务状态 ， 'INSTALL'表示项目执行安装包中， 'DEPLOY'表示项目执行发布中
       "taskTypeName": String, // 任务类型描述名： '构建'表示项目处理构建中，'默认'表示项目无任务状态 ， '包安装'表示项目执行安装包中， '发布'表示项目执行发布中
@@ -32,7 +32,7 @@ class logModel extends baseModel {
   list(data) {
     return this.model
       .find(data)
-      .select('_id name projectId  taskType taskTypeName taskState taskStateName createTime') // 取指定的字段
+      .select('_id projectName projectId  taskType taskTypeName taskState taskStateName createTime') // 取指定的字段
     // .exec(); //显示id name email role
   }
 
@@ -63,7 +63,7 @@ class logModel extends baseModel {
   // 判断名称是否唯一性
   checkNameRepeat(name) {
     return this.model.countDocuments({
-      name: name
+      projectName: name
     });
   }
 }
