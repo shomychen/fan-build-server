@@ -1,15 +1,13 @@
-import React, { useEffect, useMemo } from 'react';
-import { Button, Layout, Spin, Form, Input, Row, Col, message, Tag } from 'antd';
-import { RollbackOutlined } from '@ant-design/icons';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Button, Layout, Spin, Drawer, Tag, Table,Badge} from 'antd';
+import { RollbackOutlined, ProfileOutlined } from '@ant-design/icons';
 import { history, connect } from 'umi';
 import cls from 'classnames';
 import styles from './index.less'
-import projectList from '@/data/project.list.js'
-import request from '../../utils/request';
 import BuildlTerminal from "./BuildlTerminal";
 import InstallTerminal from "./InstallTerminal";
 import InfoForm from "./InfoForm";
-import taskConfig from '@/data/task.config.js'
+import {formatTime} from '@/utils/common'
 
 const { Sider } = Layout
 
@@ -17,12 +15,14 @@ const { Sider } = Layout
 const Project = connect(({ task, project, loading }) => ({
   task, project,
   listenTaskResult: task.listenTaskResult,
+  taskLogData: task.taskLogData,
   queryLoading: loading.effects['project/fetch_projectInfo'],
 }))((props) => {
-  const { location: { query }, task, dispatch, project, queryLoading, listenTaskResult } = props;
+  const { location: { query }, task, dispatch, project, queryLoading, listenTaskResult, taskLogData } = props;
   const { npmClients } = task;
   const { active, id } = query;
   const { projectCurrentInfo } = project;
+  const [drawerVisible, setDrawerVisible] = useState(false);
   const triggerList = [
     {
       key: 'info',
@@ -47,20 +47,20 @@ const Project = connect(({ task, project, loading }) => ({
   }, [active])
 
   // 更新任务进行状态
-  const updateTask = (params: object) => {
-    dispatch({
-      type: 'project/update_project_task',
-      payload: params,
-      callback: (res: any) => {
-        if (res.code !== 200) return
-        if (params.id === query.id) queryProjectInfo()  // 是当前项目的任务进度在变化，则更新当前项目信息
-      }
-    })
-  }
+  // const updateTask = (params: object) => {
+  //   dispatch({
+  //     type: 'project/update_project_task',
+  //     payload: params,
+  //     callback: (res: any) => {
+  //       if (res.code !== 200) return
+  //       if (params.id === query.id) queryProjectInfo()  // 是当前项目的任务进度在变化，则更新当前项目信息
+  //     }
+  //   })
+  // }
   useEffect(() => {
     const { projectId } = listenTaskResult;
-    if (projectId) {
-      if (projectId === query.id) queryProjectInfo()  // 是当前项目的任务进度在变化，则更新当前项目信息
+    if (projectId && projectId === query.id) {
+      queryProjectInfo()  // 是当前项目的任务进度在变化，则更新当前项目信息
       // updateTask({
       //   id: projectId,
       //   ...listenTaskResult,
@@ -72,6 +72,12 @@ const Project = connect(({ task, project, loading }) => ({
     dispatch({
       type: 'task/fetch_npm_clients'
     })
+    dispatch({
+      type: 'task/fetch_task_logData',
+      payload: {
+        projectId: query.id
+      }
+    })
     queryProjectInfo()
     return () => {
       dispatch({
@@ -81,6 +87,10 @@ const Project = connect(({ task, project, loading }) => ({
       dispatch({
         type: 'task/updateRunTaskResult',
         payload: {},
+      });
+      dispatch({
+        type: 'task/saveTaskLogData',
+        payload: [],
       });
     }
   }, [])
@@ -113,28 +123,27 @@ const Project = connect(({ task, project, loading }) => ({
       }
     })
   }
-  // 启动或取消任务
-  const handleRunTask = (key: string) => {
-    if (key === 'CANCEL') {
-      /*      updateTask({
-              id: query.id,
-              taskType: '',
-              taskTypeName: '',
-              taskState: '',
-              taskStateName: '',
-            })*/
-    } else {
-      console.log('执行相关任务', key, taskConfig[key])
-      updateTask({
-        id: query.id,
-        taskType: key,
-        taskTypeName: taskConfig[key] ? taskConfig[key].name : '',
-        taskState: 'process',
-        taskStateName: '执行中',
-      })
-    }
-
-  }
+  const columns = [
+    {
+      title: '任务类型',
+      dataIndex: 'taskTypeName',
+      key: 'taskTypeName',
+    },
+    {
+      title: '执行状态',
+      dataIndex: 'taskStateName',
+      key: 'taskStateName',
+      render: (text, row )=> {
+        return <Badge status={row.taskState}>{text}</Badge>
+      }
+    },
+    {
+      title: '执行时间',
+      dataIndex: 'createTime',
+      key: 'createTime',
+      render: text=> formatTime(text)
+    },
+  ]
   return <div className={styles.project}>
     <Spin spinning={queryLoading} style={{ height: '100%' }}>
       <div className={styles.projectBasic}><Button onClick={() => history.push('/')} icon={<RollbackOutlined />}></Button>
@@ -145,18 +154,18 @@ const Project = connect(({ task, project, loading }) => ({
             {projectCurrentInfo.taskTypeName}{projectCurrentInfo.taskStateName}
           </Tag>
         )}
+        <Button style={{ float: 'right' }} icon={<ProfileOutlined />} onClick={() => setDrawerVisible(true)}>操作日志</Button>
       </div>
       <div className={styles.projectSide}>
         {
           triggerList.map(item => <div key={item.key} className={cls(styles.trigger, active === item.key ? styles.active : '')}
-                                       onClick={() => history.push(`/task?id=${query.id}&&active=${item.key}`)}>
+                                       onClick={() => history.push(`/task?id=${query.id}&active=${item.key}`)}>
             <div className={styles.title}>{item.title}</div>
             <div className={styles.description}>{item.description}</div>
           </div>)
         }
       </div>
       <div className={styles.projectContent}>
-        {/**/}
         {
           active === 'info' ? <InfoForm title={triggerActive.title} projectId={query.id} data={projectCurrentInfo}
                                         onAction={handleUpdate} />
@@ -170,9 +179,11 @@ const Project = connect(({ task, project, loading }) => ({
 
             </>
         }
-        {/*</Spin>*/}
       </div>
     </Spin>
+    <Drawer visible={drawerVisible} title="操作日志" width={500}>
+      <Table rowKey={'_id'} dataSource={taskLogData} columns={columns} size="small" />
+    </Drawer>
   </div>
 })
 export default Project;

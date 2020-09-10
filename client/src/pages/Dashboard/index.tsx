@@ -66,7 +66,7 @@ const Dashboard = connect(({ project, loading }) => ({
     }
   }
   const handleTitleClick = (data) => {
-    history.push(`/task?id=${data._id}&&active=info`)
+    history.push(`/task?id=${data._id}&active=info`)
   }
   const handleSubmitProject = () => {
     form
@@ -138,7 +138,7 @@ const Dashboard = connect(({ project, loading }) => ({
                 <Meta
                   title={
                     <div className={styles.title}>
-                      <Badge status={item.status === '0' ? 'warning' : 'success'} /> {/* 显示项目状态 */}
+                      <Badge status={item.status === '1' ? 'success' : 'warning'} /> {/* 显示项目状态 */}
                       <span>{item.name}</span>
                       {/* 显示任务状态 */}
                       {item.taskState && item.taskState !== 'init' && (

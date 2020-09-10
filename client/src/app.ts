@@ -75,13 +75,13 @@ export async function render(oldRender): void {
   } catch (e) {
     console.error('Init socket failed', e);
   }
-  try {
-    const { data } = callRemote({ type: '@@project/taskList' });
-    console.log('data', data)
-  }
-  catch (e) {
-    console.log(e)
-  }
+  // try {
+  //   const { data } = callRemote({ type: '@@project/getList' });
+  //   console.log('data', data)
+  // }
+  // catch (e) {
+  //   console.log(e)
+  // }
   try {
     listenRemote({
       type: '@@task/state/update',
@@ -106,6 +106,7 @@ export async function render(oldRender): void {
   catch (e) {
     console.log(e)
   }
+
 
   oldRender();
   // console.log('当前已 初始化的，currentSockRemote', currentSockRemote())

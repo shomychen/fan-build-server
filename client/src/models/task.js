@@ -1,8 +1,7 @@
 import { fetchNpmClient } from '@/services/common';
 import { getTerminalRefIns } from '@/utils/terminal.js'
 import { callRemote, listenRemote } from '@/socket';
-import { getDvaApp } from "../.umi/plugin-dva/exports";
-import { notification } from "antd";
+import { queryLogData } from '@/services/log';
 
 const getTaskDetail = async (taskType, log = true, dbPath = '', key,) =>
   await callRemote({
@@ -21,7 +20,8 @@ export default {
   state: {
     npmClients: [],
     listenTaskResult: {},
-    taskState: {}
+    taskState: {},
+    taskLogData: [], // 当前项目的操作日志
   },
   subscriptions: {
     setup({ history, dispatch }) {
@@ -74,7 +74,18 @@ export default {
         });
       }
       if (callback) callback(response);
-    },    // 获取任务详情（获取日志时使用 -> 前端不做 log 的存储）
+    },
+    *fetch_task_logData({ payload, callback }, { call, put }){
+      const response = yield call(queryLogData, payload); //
+      if (response.code === 200) {
+        yield put({
+          type: 'saveTaskLogData',
+          payload: response.data || [],
+        });
+      }
+      if (callback) callback(response);
+    },
+    // 获取任务详情（获取日志时使用 -> 前端不做 log 的存储）
     *getTaskDetail({ payload }, { put, call }) {
       console.log('getTaskDetail==》 获取任务详情（获取日志时使用 -> 前端不做 log 的存储）')
       try {
@@ -120,6 +131,13 @@ export default {
       return {
         ...state,
         listenTaskResult: payload,
+      };
+    },
+
+    saveTaskLogData(state, { payload }) {
+      return {
+        ...state,
+        taskLogData: payload,
       };
     },
   },

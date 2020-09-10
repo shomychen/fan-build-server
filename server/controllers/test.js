@@ -40,8 +40,8 @@ class testController extends baseController {
 
       let data = {
         ...params,
-        create_time: tools.commons.time(),
-        update_time: tools.commons.time(),
+        createTime: tools.commons.time(),
+        updateTime: tools.commons.time(),
       };
 
       await this.Model.save(data); // 创建数据
@@ -59,7 +59,7 @@ class testController extends baseController {
       if (!id) return (ctx.body = tools.commons.resReturn(null, 400, 'ID不能为空'));
       let data = {
         ...params,
-        update_time: tools.commons.time(),
+        updateTime: tools.commons.time(),
       };
       await this.Model.update(id, data); // 更新数据
       ctx.body = tools.commons.resReturn({});

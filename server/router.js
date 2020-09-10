@@ -14,6 +14,7 @@ router.use('/user', user);
 const testController = require('./controllers/test.js');
 const ciController = require('./controllers/ci.js');
 const projectController= require('./controllers/project.js');
+const logController= require('./controllers/log.js');
 const router = new Router()
 
 let INTERFACE_CONFIG = {
@@ -29,7 +30,10 @@ let INTERFACE_CONFIG = {
     prefix: '/project/', // API前缀
     controller: projectController
   },
-
+  log: {
+    prefix: '/log/', // API前缀
+    controller: logController
+  },
 }
 let routerConfig = {
   test: [
@@ -114,7 +118,39 @@ let routerConfig = {
       method: 'post'
     },
   ],
-  task: []
+  log: [
+    {
+      action: 'fetchPage',
+      path: 'page',
+      method: 'get'
+    },
+    {
+      action: 'queryById',
+      path: 'detail',
+      method: 'get'
+    },
+    {
+      action: 'createSave',
+      path: 'save',
+      method: 'post'
+    },
+    {
+      action: 'update',
+      path: 'update',
+      method: 'post'
+    },
+    {
+      action: 'deleteById',
+      path: 'delete',
+      method: 'post'
+    },
+    {
+      action: 'updateTask',
+      path: 'taskUpdate',
+      method: 'post'
+    },
+
+  ]
   // socketInit: [
   //
   // ],

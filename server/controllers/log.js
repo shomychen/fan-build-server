@@ -1,15 +1,16 @@
-const projectModel = require('../models/project.js');
+const logModel = require('../models/log.js');
 const baseController = require('./base.js');
 const tools = require('../utils/tools.js');
 
-class projectController extends baseController {
+class logController extends baseController {
   constructor(ctx) {
     super(ctx);
-    this.Model = tools.getInst(projectModel); // 创建实例
+    this.Model = tools.getInst(logModel); // 创建实例
   }
 
   async fetchPage(ctx) {
-    let result = await this.Model.list() // 查询列表信息
+    // const { projectId } = ctx.params // ctx.request.body;
+    let result = await this.Model.list(ctx.params) // 查询列表信息
     if (!result) {
       return (ctx.body = tools.commons.resReturn(null, 400, '数据未查到'));
     }
@@ -27,18 +28,25 @@ class projectController extends baseController {
     return (ctx.body = tools.commons.resReturn(result, 200, '操作成功'));
   }
 
+  // // 通过项目ID查找数据
+  // async queryByProjectId(ctx) {
+  //   const { projectId } = ctx.params // ctx.request.body;
+  //   if (!projectId) return (ctx.body = tools.commons.resReturn(null, 400, 'projectId不能为空'));
+  //   let result = await this.Model.list(projectId) // 查询多个信息
+  //   console.log('查找信息', result)
+  //   // result = tools.commons.fieldSelect(result, ['_id', 'username', 'age', 'address']) // 对查询返回的数据进行过滤
+  //   if (!result) {
+  //     return (ctx.body = tools.commons.resReturn(null, 400, '数据未查到'));
+  //   }
+  //   return (ctx.body = tools.commons.resReturn(result, 200, '操作成功'));
+  // }
+
   // 创建数据
   async createSave(ctx) {
     try {
       let params = ctx.params;
-      const { name, filePath } = params // ctx.request.body;
-      if (!name) name (ctx.body = tools.commons.resReturn(null, 400, '项目名称不能为空'));
-      if (!filePath) name (ctx.body = tools.commons.resReturn(null, 400, '项目目录不能为空'));
-      let checkRepeat = await this.Model.checkNameRepeat(name);
-      if (checkRepeat > 0) {
-        return (ctx.body = tools.commons.resReturn(null, 400, '已存在的项目名称'));
-      }
-
+      const { name } = params // ctx.request.body;
+      if (!name) (ctx.body = tools.commons.resReturn(null, 400, '项目名称不能为空'));
       let data = {
         ...params,
         createTime: tools.commons.time(),
@@ -102,4 +110,4 @@ class projectController extends baseController {
   }
 }
 
-module.exports = projectController;
+module.exports = logController;

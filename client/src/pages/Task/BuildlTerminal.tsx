@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Space } from 'antd';
+import { Button, Space, Steps } from 'antd';
 import { CaretRightOutlined, PauseOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import styles from './index.less'
 import Terminal from '@/components/Terminal/index'
@@ -8,6 +8,7 @@ import { getTerminalRefIns, setTerminalRefIns } from '@/utils/terminal.js'
 import { useInit } from '@/hooks'
 import BuildModal from './components/BuildModal';
 
+const { Step } = Steps;
 
 interface CodeProps {
   /** Layout 类型（项目列表、项目详情，loading 页） */
@@ -23,9 +24,8 @@ interface CodeProps {
   npmClients?: Array;
 }
 
-let socket: any;
 const BuildTerminal: React.FC<CodeProps> = (props) => {
-  const { title, onAction, projectId, data, npmClients = [], dispatch } = props;
+  const { title, projectId, data, npmClients = [], dispatch } = props;
   const { taskType, taskState, filePath } = data;
   const [init] = useInit(data);
   // const [isBuildRunning, setBuildRunning] = useState(false);
@@ -78,7 +78,8 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
 
   useEffect(() => {
     if (!init) {
-      return () => {};
+      return () => {
+      };
     }
     dispatch({
       type: `task/getTaskDetail`,
@@ -112,17 +113,17 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
     <div className={styles.headerBar}>
       <span>{title}</span>
       {/*<span className={'text-info'}>当前任务：{data.taskType}当前进度{data.taskState} </span>*/}
-      {data.status === '0' && <span className={'text-warning'} style={{ marginLeft: '5px', fontSize: '12px' }}>请先完善项目配置信息</span>}
-      {/* <Steps size="small" current={1} className={styles.actionBarStep}>
+      {data.status !== '1' && <span className={'text-warning'} style={{ marginLeft: '5px', fontSize: '12px' }}>请先完善项目配置信息</span>}
+      <Steps size="small" current={1} className={styles.actionBarStep}>
         <Step title="构建中" />
         <Step title="发布中" />
         <Step title="部署完成" />
-      </Steps>*/}
+      </Steps>
     </div>
 
     <Space className={styles.actionBar}>
       <Button type={"primary"} onClick={() => handleControl(isBuildRunning ? 'CANCEL' : 'BUILD', '构建')}
-              disabled={data.status === '0' || isTaskRunning || isDeployRunning}
+              disabled={data.status !== '1' || isTaskRunning || isDeployRunning}
       >
         {isBuildRunning ? (
           <>
@@ -134,7 +135,7 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
           </>
         )}
       </Button>
-      <Button type={"primary"} onClick={() => handleControl(isDeployRunning ? 'CANCEL' : 'DEPLOY', '发布')} disabled={data.status === '0' || isTaskRunning || isBuildRunning}>
+      <Button type={"primary"} onClick={() => handleControl(isDeployRunning ? 'CANCEL' : 'DEPLOY', '发布')} disabled={data.status !== '1' || isTaskRunning || isBuildRunning}>
         {isDeployRunning ? (
           <>
             <PauseOutlined />
@@ -148,7 +149,7 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
       <Button>预留菜单配置 </Button>
       <Button type={"primary"} onClick={() => handleControl('TESTCOPY', '测试')}>测试</Button>
       <Button type={"primary"} onClick={() => handleControl('CANCEL', '停止')}>停止</Button>
-      <Button type={"primary"} onClick={() => handleControl('BUILDAndDEPLOY', '构建并发布')} disabled={isBuildRunning || data.status === '0'}><CaretRightOutlined />预留 构建并发布</Button>
+      <Button type={"primary"} onClick={() => handleControl('BUILDAndDEPLOY', '构建并发布')} disabled={isBuildRunning || data.status !== '1'}><CaretRightOutlined />预留 构建并发布</Button>
     </Space>
     <Terminal
       // defaultValue={'默认值'}
