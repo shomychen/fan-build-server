@@ -56,8 +56,8 @@ const initPageSocket = (server) => {
       send({ type: `${type}/progress`, payload });
     }
 
-    // type: create/update
-    const log = (type, message, key) => {
+    // 创建或更新当前任务对应的任务操作日志
+    const log = (type, message) => {
       // 拼装日志消息消息
       // const payload = {
       //   date: +new Date(),
