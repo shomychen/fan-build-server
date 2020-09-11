@@ -27,6 +27,7 @@ interface ITerminalProps {
   onResize?: (ins: XTerminal) => void;
   /** terminal close */
   onClose?: () => void;
+  onClear?: () => void;
 
   [key: string]: any;
 }
@@ -46,6 +47,8 @@ const TerminalComponent: React.FC<ITerminalProps> = forwardRef((props = {}, ref)
     onResize = () => {
     },
     onClose = () => {
+    },
+    onClear = () => {
     },
     // default use true
     visible = true,
@@ -135,7 +138,8 @@ const TerminalComponent: React.FC<ITerminalProps> = forwardRef((props = {}, ref)
   }, [xterm, defaultValue]);
 
   const clear = () => {
-    xterm?.clear?.();
+    // xterm?.clear?.();
+    onClear?.()
   };
 
   const toBottom = () => {

@@ -48,7 +48,7 @@ export async function init(opts = {}) {
     function initSocket() {
       sock = new SockJS('http://localhost:9999/page-socket');
       console.log('初始化socket连接 /page-socket')
-      sock.onopen = () => {
+      sock.onopen = (e) => {
         retries = 0;
         hideErrorMessage();
         resolve();

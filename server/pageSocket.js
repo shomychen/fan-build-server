@@ -1,4 +1,5 @@
 const sockjs = require('sockjs'); // 与服务端进行连接
+const { createWriteStream, existsSync } = require('fs');
 // const get  = require( 'lodash/get');
 // const os = require('os');
 const chalk = require('chalk');
@@ -18,15 +19,21 @@ const initPageSocket = (server) => {
 
     conns[conn.id] = conn; // 存储连接
 
+    const connsArr = Object.keys(conns);
     console.log('当前已有的任务集合', procGroup())
-    // console.log('当前有的连接数量', conns)
+    console.log('当前有的连接数量', connsArr)
     // this.connctions = conns
     console.log(`🔗 ${chalk.green('Connected to')}: ${conn.id}`);
     // console.log('当前存储的this.connctions', conns)
 
+
     // 服务端发送消息给客户端
     function send(action) {
       const message = JSON.stringify(action);
+      const { type, payload } = action;
+      if (type.startsWith('@@action')) {
+        console.log(chalk.green.bold(`>>>> 需要更新进程日志 ${type}`), formatLogMessage(JSON.stringify(payload)))
+      }
       console.log(chalk.green.bold('>>>> 服务端发送消息给客户端:'), formatLogMessage(message));
       Object.keys(conns).forEach(id => {
         console.log('当前监听到的id', id)
@@ -42,20 +49,53 @@ const initPageSocket = (server) => {
     }
 
     function success(type, payload) {
-      console.log('success 成功提示', type, payload)
+      console.log('success 成功提示', type)
+      taskProcessLog(payload)
       send({ type: `${type}/success`, payload });
     }
 
     function failure(type, payload) {
-      console.log('failuclosere 失败提示', type, payload)
+      console.log('failuclosere 失败提示', type)
+      taskProcessLog(payload)
       send({ type: `${type}/failure`, payload });
     }
 
     function progress(type, payload) {
-      console.log('执行中', type, payload)
+      console.log('执行中', type, payload.taskType)
+      taskProcessLog(payload)
       send({ type: `${type}/progress`, payload });
     }
 
+    // 更新并推送日志
+    const taskProcessLog = (payload) => {
+      const { key, log, taskType } = payload;
+      if (!taskType) return
+      console.log("需要执行日志更新", payload)
+      if (['TESTCOPY', 'BUILD', 'BUILDAndDEPLOY', 'DEPLOY'].indexOf(taskType) > -1) {
+        payload.taskType = 'BUILD'  // 都归属于构建发布模块
+      }
+      try {
+        if (!existsSync(`./log/${payload.taskType}.${key}.log`)) {
+          console.log('日志文件不存在，需要创建下新日志')
+        }
+        let options = {
+          flags: 'a', //
+          encoding: 'utf8', // utf8编码
+        }
+        let stderr = createWriteStream(`./log/${payload.taskType}.${key}.log`, options);
+        // 创建logger
+        let logger = new console.Console(stderr);
+        // 真实项目中调用下面即可记录错误日志
+        logger.log(log);
+
+        send({
+          type: '@@tasks/log/process', // 进程日志（还需要执行创建当前项目相关的日志文件）
+          payload,
+        })
+      } catch (e) {
+
+      }
+    }
     // 创建或更新当前任务对应的任务操作日志
     const log = (type, message) => {
       // 拼装日志消息消息
@@ -87,7 +127,7 @@ const initPageSocket = (server) => {
         result.id = key
         const json = await request('/api/project/taskUpdate', 'POST', result)
         send({
-          type: '@@task/state/update',
+          type: '@@tasks/state/update',
           payload: {
             status,
             result
@@ -97,6 +137,11 @@ const initPageSocket = (server) => {
       })();
     };
 
+    // 发送当前连接的sockjsid
+    send({
+      type: '@@connect/info',
+      payload: conn.id
+    })
     // 断开
     conn.on('close', () => {
       console.log(`😿 ${chalk.red('Disconnected to')}: ${conn.id}`);
@@ -104,12 +149,12 @@ const initPageSocket = (server) => {
     });
 
     conn.on('data', async message => {
-      console.log('接收到由客户端返回的消息', message.type)
+      console.log('接收到由客户端返回的消息', message)
       try {
         const { type, payload, key, taskType } = JSON.parse(message);
         console.log(chalk.blue.bold('<<<<'), formatLogMessage(message));
         if (type.startsWith('@@')) {
-          console.log('返回请求带@@开头，执行handleCoreData', type, procGroup.key)
+          console.log('返回请求带@@开头，执行handleCoreData', type, procGroup.key, payload)
           await handleCoreData(
             { type, payload, key, taskType },
             {

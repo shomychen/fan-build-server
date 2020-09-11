@@ -82,19 +82,17 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
       };
     }
     dispatch({
-      type: `task/getTaskDetail`,
+      type: `task/get_tasksLogHistory`,
       payload: {
-        taskType,
+        taskType: 'BUILD',
         log: true,
         dbPath: filePath,
         key: projectId,
         callback: ({ log }) => {
-          console.log('初始化日志', log)
-          setLog('需要赋值初始化日志');
+          setLog(log);
         },
       },
     });
-
     return () => {
       // const terminal = getTerminalRefIns(taskType, projectId);
       // if (terminal) {
@@ -159,6 +157,24 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
           // window.terminal = ins // 初始到的window
           setTerminalRefIns('BUILD', projectId, ins);
         }
+      }}
+      onClear={() => {
+        console.log('需要清空日志')
+        dispatch({
+          type: `task/clear_tasksLogHistory`,
+          payload: {
+            taskType: 'BUILD',
+            dbPath: filePath,
+            key: projectId,
+            callback: ({ done }) => {
+              console.log('执行结果: done==>', done)
+              const terminal = getTerminalRefIns('BUILD', projectId);
+              if (done && terminal) {
+                terminal.clear(); // 清空当前命令
+              }
+            },
+          },
+        });
       }}
       // config={{
       //   cursorBlink: true,

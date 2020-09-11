@@ -3,16 +3,24 @@ import { getTerminalRefIns } from '@/utils/terminal.js'
 import { callRemote, listenRemote } from '@/socket';
 import { queryLogData } from '@/services/log';
 
-const getTaskDetail = async (taskType, log = true, dbPath = '', key,) =>
-  await callRemote({
-    type: 'tasks/detail', // 获取任务详情，即以往的任务进程消息
-    key,
-    payload: {
-      type: taskType,
-      log,
-      dbPath
-    },
-  });
+const getTaskLogHistory = async (taskType, log = true, dbPath = '', key,) => await callRemote({
+  type: '@@tasks/log/history', // 获取任务进程历史记录详情，即以往的任务进程消息
+  payload: {
+    log,
+    dbPath
+  },
+  key,
+  taskType,
+});
+
+
+const clearTaskLog = async (taskType, key,) => await callRemote({
+  type: '@@tasks/log/clear', // 获取任务进程历史记录详情，即以往的任务进程消息
+  payload: {
+  },
+  key,
+  taskType,
+});
 
 let init = false;
 export default {
@@ -47,23 +55,16 @@ export default {
               });
             },
           });
-          console.log('任务子进程日志 @@task/log， 监听')
           listenRemote({
-            type: '@@task/log',
-            onMessage: ({
-                          date,
-                          message,
-                          type,
-                        }) => {
-              console.log('监听 @@task/log', date,
-                message,
-                type)
+            type: '@@tasks/log/process',
+            onMessage: ({ taskType, log, key, payload }) => {
+              console.log('监听 @@tasks/log/process', taskType, log, key, payload)
               dispatch({
                 type: 'writeLog',
                 payload: {
-                  // taskType,
-                  // log,
-                  // key,
+                  taskType,
+                  log,
+                  key,
                 },
               });
             },
@@ -84,7 +85,7 @@ export default {
       }
       if (callback) callback(response);
     },
-    *fetch_task_logData({ payload, callback }, { call, put }){
+    *fetch_task_logData({ payload, callback }, { call, put }) {
       const response = yield call(queryLogData, payload); //
       if (response.code === 200) {
         yield put({
@@ -94,17 +95,17 @@ export default {
       }
       if (callback) callback(response);
     },
-    // 获取任务详情（获取日志时使用 -> 前端不做 log 的存储）
-    *getTaskDetail({ payload }, { put, call }) {
-      console.log('getTaskDetail==》 获取任务详情（获取日志时使用 -> 前端不做 log 的存储）')
+    // 获取任务进程历史记录
+    *get_tasksLogHistory({ payload }, { put, call }) {
+      console.log('getTaskHistory==》 获取任务进程历史记录）', payload)
       try {
         const { taskType, callback, log, dbPath, key } = payload;
-        const result = yield call(getTaskDetail, taskType, log, dbPath, key);
-        console.log('更新当前执行的任务进度', result)
+        const result = yield call(getTaskLogHistory, taskType, log, dbPath, key);
+        console.log('获取任务进程历史记录', result)
         callback && callback(result);
       }
       catch (e) {
-        console.log('更新当前执行的任务进度报错', e)
+        console.log('获取任务进程历史记录报错', e)
       }
       // yield put({
       //   type: 'updateWebpackStats',
@@ -112,6 +113,23 @@ export default {
       // });
     },
 
+    // 清空进程日志
+    *clear_tasksLogHistory({ payload }, { put, call }) {
+      console.log('clear_tasksLogHistory==》 清空进程日志历史记录）', payload)
+      try {
+        const { taskType, callback, key } = payload;
+        const result = yield call(clearTaskLog, taskType, key);
+        console.log('清空进程日志历史记录', result)
+        callback && callback(result);
+      }
+      catch (e) {
+        console.log('清空进程日志历史记录报错', e)
+      }
+      // yield put({
+      //   type: 'updateWebpackStats',
+      //   payload: result,
+      // });
+    },
     // 更新日志
     *writeLog({ payload }, { select }) {
       const { taskType, log, key: projectKey } = payload;
@@ -120,12 +138,12 @@ export default {
       if (!key) {
         return;
       }
-      const ins = getTerminalRefIns(taskType, projectKey);
-      if (!ins) {
+      let terminal = getTerminalRefIns(taskType, projectKey) // 任务类型为 INSTALL
+      if (!terminal) {
         return;
       }
-      console.log('更新日志writeLog', log)
-      ins.write(log.replace(/\n/g, '\r\n'));
+      // console.log('更新日志writeLog', log)
+      terminal.write(log.replace(/\n/g, '\r\n'));
     },
   },
   reducers: {

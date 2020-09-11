@@ -3,9 +3,8 @@ import { Button, Space, Modal, Form, Select } from 'antd';
 import { CaretRightOutlined, PauseOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import styles from './index.less'
 import Terminal from '@/components/Terminal/index'
-import SockJS from 'sockjs-client';
 import { send } from '@/socket'
-import { AttachAddon } from 'xterm-addon-attach';
+import { useInit } from '@/hooks'
 import { getTerminalRefIns, setTerminalRefIns } from '@/utils/terminal.js'
 
 const { Option } = Select;
@@ -17,6 +16,7 @@ interface InstallProps {
   title?: string;
   // active: 'install' | 'build';
   // actions?: Array<{}>;
+  dispatch: any;
   data?: object;
   projectId?: string;
   onAction?: (key?: String) => void,
@@ -24,8 +24,11 @@ interface InstallProps {
 }
 
 const InstallTerminal: React.FC<InstallProps> = (props) => {
-  const { title, onAction, projectId, data, npmClients } = props;
+  const { title, onAction, projectId, data, npmClients , dispatch} = props;
+  const { taskType, filePath } = data;
+  const [init] = useInit(data);
   const [form] = Form.useForm()
+  const [log, setLog] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
 
   const handleSubmit = (values: object) => {
@@ -66,7 +69,7 @@ const InstallTerminal: React.FC<InstallProps> = (props) => {
     })
     const terminal = getTerminalRefIns('INSTALL', projectId);
     if (terminal) {
-      terminal.clear(); // 先清空当前命令
+      // terminal.clear(); // 先清空当前命令
       send({
         type: `@@actions/${key}`,
         payload: {
@@ -80,6 +83,30 @@ const InstallTerminal: React.FC<InstallProps> = (props) => {
     }
   }
 
+  useEffect(() => {
+    if (!init) {
+      return () => {
+      };
+    }
+    dispatch({
+      type: `task/get_tasksLogHistory`,
+      payload: {
+        taskType: 'INSTALL',
+        log: true,
+        dbPath: filePath,
+        key: projectId,
+        callback: ({ log }) => {
+          setLog(log);
+        },
+      },
+    });
+    return () => {
+      // const terminal = getTerminalRefIns(taskType, projectId);
+      // if (terminal) {
+      //   terminal.clear();
+      // }
+    };
+  }, [init]);
   // 执行中的任务类型不为INSTALL，也不包括默认DEFUAT且任务状态等于process
   const isInstallRunning = data && data.taskType === 'INSTALL' && data.taskState === 'process'; // 安装进行中
   const isTaskRunning = data && ['BUILD', 'DEPLOY', 'TESTCOPY'].indexOf(data.taskType) > -1 && data.taskState === 'process' // 其他任务执行中
@@ -108,11 +135,29 @@ const InstallTerminal: React.FC<InstallProps> = (props) => {
       </Button>
     </Space>
     <Terminal
+      defaultValue={log}
       onInit={ins => {
         if (ins) {
           // window.terminal = ins
           setTerminalRefIns('INSTALL', projectId, ins);
         }
+      }}
+      onClear={() => {
+        dispatch({
+          type: `task/clear_tasksLogHistory`,
+          payload: {
+            taskType: 'INSTALL',
+            dbPath: filePath,
+            key: projectId,
+            callback: ({ done }) => {
+              console.log('执行结果: done==>', done)
+              const terminal = getTerminalRefIns('INSTALL', projectId);
+              if (done && terminal) {
+                terminal.clear(); // 清空当前命令
+              }
+            },
+          },
+        });
       }}
     >
     </Terminal>

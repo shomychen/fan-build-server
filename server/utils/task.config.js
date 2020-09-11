@@ -41,7 +41,16 @@ module.exports = {
       'failure': '失败',
       'success': '成功',
     }
-  }
+  },
+  'TESTCOPY': {
+    name: '测试拷贝',
+    states: {
+      'init': '未执行',
+      'process': '进行中',
+      'failure': '失败',
+      'success': '成功',
+    }
+  },
 }
 
 module.taskArray = () => {
