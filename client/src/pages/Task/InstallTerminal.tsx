@@ -61,6 +61,25 @@ const InstallTerminal: React.FC<InstallProps> = (props) => {
     }
   }
 
+
+  const clearLog = (callback)=> {
+    dispatch({
+      type: `task/clear_tasksLogHistory`,
+      payload: {
+        taskType: 'INSTALL',
+        dbPath: filePath,
+        key: projectId,
+        callback: ({ done }) => {
+          if (!done) return;
+          const terminal = getTerminalRefIns('INSTALL', projectId);
+          if (done && terminal) {
+            terminal.clear(); // 清空当前命令
+          }
+          if (callback) callback()
+        },
+      },
+    });
+  }
   const runningTask = (key?: String, client: string) => {
     // 执行打包命令
     console.log('执行打包命令，参数：', {
@@ -69,17 +88,20 @@ const InstallTerminal: React.FC<InstallProps> = (props) => {
     })
     const terminal = getTerminalRefIns('INSTALL', projectId);
     if (terminal) {
-      // terminal.clear(); // 先清空当前命令
-      send({
-        type: `@@actions/${key}`,
-        payload: {
-          ...data, // 里面有当前项目的目录路径
-          npmClient: client
-        },
-        key: projectId,
-        taskType: 'INSTALL', // 当前执行任务类型
-      }); // 会同时将信息发送到服务端
-      // onAction && onAction('INSTALL') // 当前执行项目
+      // 先清空当前日志
+      clearLog(() => {
+        send({
+          type: `@@actions/${key}`,
+          payload: {
+            ...data, // 里面有当前项目的目录路径
+            npmClient: client
+          },
+          key: projectId,
+          taskType: 'INSTALL', // 当前执行任务类型
+        }); // 会同时将信息发送到服务端
+        // onAction && onAction('INSTALL') // 当前执行项目
+      })
+
     }
   }
 
@@ -88,6 +110,7 @@ const InstallTerminal: React.FC<InstallProps> = (props) => {
       return () => {
       };
     }
+    console.log('执行次数')
     dispatch({
       type: `task/get_tasksLogHistory`,
       payload: {
@@ -96,6 +119,7 @@ const InstallTerminal: React.FC<InstallProps> = (props) => {
         dbPath: filePath,
         key: projectId,
         callback: ({ log }) => {
+          // 设置日志初始值
           setLog(log);
         },
       },
@@ -142,23 +166,7 @@ const InstallTerminal: React.FC<InstallProps> = (props) => {
           setTerminalRefIns('INSTALL', projectId, ins);
         }
       }}
-      onClear={() => {
-        dispatch({
-          type: `task/clear_tasksLogHistory`,
-          payload: {
-            taskType: 'INSTALL',
-            dbPath: filePath,
-            key: projectId,
-            callback: ({ done }) => {
-              console.log('执行结果: done==>', done)
-              const terminal = getTerminalRefIns('INSTALL', projectId);
-              if (done && terminal) {
-                terminal.clear(); // 清空当前命令
-              }
-            },
-          },
-        });
-      }}
+      onClear={clearLog}
     >
     </Terminal>
     <Modal

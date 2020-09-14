@@ -36,7 +36,6 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
   const handleControl = (key?: String, name ?: String) => {
     setCurrentTask(key)
     if (key === 'CANCEL') {
-      console.log('需要执行取消操作')
       send({
         type: `@@actions/${'CANCEL'}`,
         payload: {
@@ -50,20 +49,43 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
       setModalTitle(`${name}环境配置`)
     }
   }
+
+  const clearLog = (callback)=> {
+    dispatch({
+      type: `task/clear_tasksLogHistory`,
+      payload: {
+        taskType: 'BUILD',
+        dbPath: filePath,
+        key: projectId,
+        callback: ({ done }) => {
+          if (!done) return;
+          // console.log('执行结果: done==>', done)
+          const terminal = getTerminalRefIns('BUILD', projectId);
+          if (done && terminal) {
+            terminal.clear(); // 清空当前命令
+          }
+          if (callback) callback()
+        },
+      },
+    });
+  }
   const runningTask = (values: object) => {
     // 执行构建命令
     const terminal = getTerminalRefIns('BUILD', projectId);
     if (terminal) {
-      // terminal.clear(); // 先清空当前命令
-      send({
-        type: `@@actions/${currentTask}`,
-        payload: {
-          ...data, // 里面有当前项目的目录路径
-          ...values, // 里面的 buildPath 将被覆盖
-        },
-        key: projectId,
-        taskType: currentTask, // 当前执行任务类型
-      }); // 会同时将信息发送到服务端
+      // 先清空当前日志
+      clearLog(()=> {
+        // terminal.write('\r\n\r\n'); // 清空当前命令
+        send({
+          type: `@@actions/${currentTask}`,
+          payload: {
+            ...data, // 里面有当前项目的目录路径
+            ...values, // 里面的 buildPath 将被覆盖
+          },
+          key: projectId,
+          taskType: currentTask, // 当前执行任务类型
+        }); // 会同时将信息发送到服务端
+      })
     }
   }
   const handleOk = (values: object) => {
@@ -75,7 +97,6 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
   const handleCancel = () => {
     setModalVisible(false)
   }
-
   useEffect(() => {
     if (!init) {
       return () => {
@@ -158,24 +179,7 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
           setTerminalRefIns('BUILD', projectId, ins);
         }
       }}
-      onClear={() => {
-        console.log('需要清空日志')
-        dispatch({
-          type: `task/clear_tasksLogHistory`,
-          payload: {
-            taskType: 'BUILD',
-            dbPath: filePath,
-            key: projectId,
-            callback: ({ done }) => {
-              console.log('执行结果: done==>', done)
-              const terminal = getTerminalRefIns('BUILD', projectId);
-              if (done && terminal) {
-                terminal.clear(); // 清空当前命令
-              }
-            },
-          },
-        });
-      }}
+      onClear={clearLog}
       // config={{
       //   cursorBlink: true,
       //   disableStdin: false,

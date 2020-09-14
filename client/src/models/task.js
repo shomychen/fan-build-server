@@ -97,11 +97,11 @@ export default {
     },
     // 获取任务进程历史记录
     *get_tasksLogHistory({ payload }, { put, call }) {
-      console.log('getTaskHistory==》 获取任务进程历史记录）', payload)
+      console.log('get_tasksLogHistory ==》 获取任务进程历史记录）', payload)
       try {
         const { taskType, callback, log, dbPath, key } = payload;
         const result = yield call(getTaskLogHistory, taskType, log, dbPath, key);
-        console.log('获取任务进程历史记录', result)
+        console.log('获取任务进程历史记录返回值', result)
         callback && callback(result);
       }
       catch (e) {
@@ -142,8 +142,8 @@ export default {
       if (!terminal) {
         return;
       }
-      // console.log('更新日志writeLog', log)
-      terminal.write(log.replace(/\n/g, '\r\n'));
+      console.log('更新日志writeLog',  log)
+      terminal.write(`\r\n${log.replace(/\n/g, '\r\n')}`);
     },
   },
   reducers: {

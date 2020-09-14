@@ -17,6 +17,7 @@ class logModel extends baseModel {
       "taskTypeName": String, // 任务类型描述名： '构建'表示项目处理构建中，'默认'表示项目无任务状态 ， '包安装'表示项目执行安装包中， '发布'表示项目执行发布中
       "taskState": String, // 任务执行状态：  'init'表示任务执行无状态, 'ing' 表示任务进行中，'success'表示任务执行成功， 'fail'表示任务执行失败
       "taskStateName": String,  // 任务执行状态描述名： '无状态', '进行中','执行成功'， 'fail执行失败 '，
+      "description": String,// 描述
       "createTime": String, // 任务创建时间
       "updateTime": String, // 任务更新时间
     }
@@ -32,7 +33,7 @@ class logModel extends baseModel {
   list(data) {
     return this.model
       .find(data)
-      .select('_id projectName projectId  taskType taskTypeName taskState taskStateName createTime') // 取指定的字段
+      .select('_id projectName projectId  taskType taskTypeName taskState taskStateName createTime description') // 取指定的字段
     // .exec(); //显示id name email role
   }
 

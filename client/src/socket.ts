@@ -9,8 +9,8 @@ export async function init(opts = {}) {
   const { onMessage } = opts;
   return new Promise(resolve => {
     function handler(e) {
-      console.log('slocket.ts==>接收到服务端的数据', e)
       const { type, payload } = JSON.parse(e.data);
+      console.log('slocket.ts==>接收到服务端的数据', type , payload)
       onMessage({ type, payload });
       messageHandlers.forEach(h => {
         h({ type, payload });
@@ -56,7 +56,7 @@ export async function init(opts = {}) {
       sock.onmessage = handler;
       sock.onclose = () => {
         sock = null;
-        console.log('连接断开，重新执行连接')
+        console.log('连接断开，等待重新执行连接')
         if (retries === 0) showErrorMessage();
         if (retries <= 10) {
           const retryInMs = 1000 * Math.pow(2, retries) + Math.random() * 100;

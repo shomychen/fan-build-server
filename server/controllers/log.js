@@ -103,7 +103,7 @@ class logController extends baseController {
         updateTime: tools.commons.time(),
       };
       await this.Model.update(id, data); // 更新数据
-      ctx.body = tools.commons.resReturn(null, 200, '更新任务状态成功');
+      ctx.body = tools.commons.resReturn(null, 200, '更新任logo务状态成功');
     } catch (err) {
       ctx.body = tools.commons.resReturn(null, 400, err.message);
     }
