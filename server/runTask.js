@@ -2,9 +2,14 @@ const { join } = require("path");
 const { existsSync, createReadStream, writeFile } = require("fs");
 const rimraf = require("rimraf"); // 删除文件夹
 const kill = require('tree-kill'); // 杀死任务进程
+// const del = require('del');
+const iconv = require('iconv-lite');
 const { spawn, exec } = require('child_process');
 const taskConfig = require("./utils/task.config");
 const request = require('./utils/request');
+
+const encoding = 'cp936';
+const binaryEncoding = 'binary';
 
 let proc = {}; // 当前执行的进程 （按项目ID分）
 /**
@@ -79,7 +84,7 @@ async function handleChildProcess(child, { progress, success, failure, stats, lo
     console.log('runArgs', runArgs)
     delete proc[key]; // 删除当前项目处理中的进程
     const result = setResultInfo([payload.name, key, taskType, code !== 0 ? 'failure' : 'success'])
-    if (code !== 0) result.description =  new Error(`用户操作停止，Command failed: ${npmClient} ${runArgs.join(' ')}`).toString()
+    if (code !== 0) result.description = new Error(`用户操作停止，Command failed: ${npmClient} ${runArgs.join(' ')}`).toString()
     log('update', { id: logId, ...result }); // 操作日志更新
     stats(key, code !== 0 ? 'error' : 'success', { ...result })
     if (code !== 0) {
@@ -127,6 +132,14 @@ function setResultInfo([name, key, type, state]) {
   }
 }
 
+
+function setTaskState([name, key, type, state]) {
+  return {
+    taskState: state, // 任务状态(process\success\failure)
+    taskStateName: taskConfig[type].states ? taskConfig[type].states[state] : '',
+  }
+}
+
 // 重装 node_modules 时先清空，否则可能会失败
 async function cleanNodeModules(targetDir) {
   return new Promise((resolve, reject) => {
@@ -144,18 +157,37 @@ async function cleanNodeModules(targetDir) {
 // 更新SVN文件
 async function updateProjectSvn(cwd) {
   return new Promise((resolve, reject) => {
-    exec(`svn up ${cwd}`, err => {
+    exec(`svn up ${cwd}`, (err, stdout, stderr) => {
       if (err) return reject(err); // 返回 error
-      resolve()
+      resolve(err, stdout, stderr)
     })
+  })
+}
+
+// 执行svn相关命令
+/**
+ * @param {string} command 执行命令
+ * @param {string} tips 描述文本
+ * */
+function svnCommands(command, { type, payload, key, taskType, targetDir }, { log, send, success, failure, progress, stats }) {
+  exec(command, { encoding: binaryEncoding }, (err, stdout, stderr) => {
+    if (err) {
+      const error = iconv.decode(Buffer.from(err.toString(), binaryEncoding), encoding)
+      failure({ key, log: error, taskType })
+      log('update', { id: data._id, description: error, ...setResultInfo([payload.name, key, taskType, 'failure']) })
+      stats(key, 'error', { errorInfo: error, ...setResultInfo([payload.name, key, taskType, 'failure']) })
+    }
+    if (progress) progress({ key, log: iconv.decode(Buffer.from(stdout, binaryEncoding), encoding).toString(), taskType })
+    console.log(iconv.decode(Buffer.from(stdout, binaryEncoding), encoding));
+    // console.log(iconv.decode(Buffer.from(stderr, binaryEncoding), encoding));
   })
 }
 
 //  执行“构建”或“发布”任务
 async function runBuildOrDeploy(method, { type, payload, key, taskType, targetDir }, { log, send, success, failure, progress, stats }) {
   // if (method === '')
-  return new Promise((resolve, reject)=> {
-    (async ()=> {
+  return new Promise((resolve, reject) => {
+    (async () => {
       const runArgs = ['run', method === 'BUILD' ? payload.buildCommand : payload.deployCommand]
       if (type === '@@actions/DEPLOY') {
         if (!existsSync(join(targetDir, payload.buildPath))) {
@@ -166,7 +198,6 @@ async function runBuildOrDeploy(method, { type, payload, key, taskType, targetDi
           return
         }
       }
-
       // Step1.创建操作日志
       const buildLogInfo = await log('create', { ...setResultInfo([payload.name, key, taskType, 'process']) }, key);
       console.log('创建操作日志返回对应的ID', buildLogInfo.data)
@@ -180,7 +211,7 @@ async function runBuildOrDeploy(method, { type, payload, key, taskType, targetDi
         progress({ key, log: `\x1b[1;32m> Svn update 【${targetDir}】 success.\x1b[39m\n`, taskType })
       }).catch(error => {
         failure({ key, log: `\x1b[1;31m> Svn update  【${targetDir}】 failure!\x1b[39m\n`, taskType })
-        log('update', { id: data._id,  description: error.toString(), ...setResultInfo([payload.name, key, taskType, 'failure']) })
+        log('update', { id: data._id, description: error.toString(), ...setResultInfo([payload.name, key, taskType, 'failure']) })
         stats(key, 'error', { errorInfo: error.toString(), ...setResultInfo([payload.name, key, taskType, 'failure']) })
       })
       try {
@@ -191,7 +222,7 @@ async function runBuildOrDeploy(method, { type, payload, key, taskType, targetDi
       }
       catch (error) {
         failure({ key, log: error.toString(), taskType })
-        log('update', { id: data._id, description: error.toString(), ...setResultInfo([payload.name, key, taskType, 'failure'], ) })
+        log('update', { id: data._id, description: error.toString(), ...setResultInfo([payload.name, key, taskType, 'failure'],) })
         stats(key, 'error', { errorInfo: error.toString(), ...setResultInfo([payload.name, key, taskType, 'failure']) })
         reject(error)
       }
@@ -224,18 +255,12 @@ async function handleCoreData({ type, payload, key, taskType }, { log, send, suc
     console.log('是否存在目录', targetDir, existsSync(targetDir))
     // 判断是否存在目录，不存在，则返回异常
     if (!existsSync(targetDir)) {
-      failure({
-        key,
-        log: `当前项目目录：${targetDir} 不存在,无法操作！！\n`
-      })
+      stats(key, 'init', { ...setResultInfo([payload.name, key, taskType, 'init']) }, { errorLog: `当前项目目录：${targetDir} 不存在,无法操作！` })
       return
     }
     switch (type) {
-      case '@@actions/DEPLOY': // 部署/发布
-        await runBuildOrDeploy('DEPLOY', { type, payload, key, taskType, targetDir:payload.filePath }, { log, send, success, failure, progress, stats })
-        break;
       case '@@actions/BUILD':  // 构建
-       await runBuildOrDeploy('BUILD', { type, payload, key, taskType, targetDir }, { log, send, success, failure, progress, stats })
+        await runBuildOrDeploy('BUILD', { type, payload, key, taskType, targetDir }, { log, send, success, failure, progress, stats })
         /* runArgs = ['run', payload.buildCommand]  // 构建命令 构建目录配置为空或者 '/'时，执行npm run build，打包产物需要部署到根目录
          if (type === '@@actions/DEPLOY') {
            runArgs = ['run', payload.deployCommand]  // 打包命令
@@ -277,8 +302,57 @@ async function handleCoreData({ type, payload, key, taskType }, { log, send, suc
            stats(key, 'error', { errorInfo: error.toString(), ...setResultInfo([payload.name, key, taskType, 'failure']) })
          }*/
         break;
-        // 构建并发布
+      case '@@actions/DEPLOY': // 部署/发布
+        // await runBuildOrDeploy('DEPLOY', { type, payload, key, taskType, targetDir:payload.filePath }, { log, send, success, failure, progress, stats })
+        // Step1. 判断目录是否存在
+        if (!existsSync(join(targetDir, payload.buildPath))) {
+          stats(key, 'init', { ...setResultInfo([payload.name, key, taskType, 'init']) }, { errorLog: `部署文件目录不存在，请先执行构建！` })
+          return
+        }
+        // Step2.创建操作日志
+        const buildLogInfo = await log('create', { ...setResultInfo([payload.name, key, taskType, 'process']) }, key);
+        console.log('创建操作日志返回对应的ID', buildLogInfo.data)
+        const { data } = buildLogInfo;
+        // Step3.更新当前任务状态
+        stats(key, 'process', { ...setResultInfo([payload.name, key, taskType, 'process']) })
+        // console.log('发布目录 是否存在', existsSync(payload.deployFilePath))
+        // Step2. 清空部署目录下的文件
+        // exec(`svn delete ${payload.deploySvnPath}\* -m "前端 删除上一版本发布文件"`, (err, stdout, stderr) => {
+        //   if (err) return // done(err); // 返回 error
+        //   console.log(`stdout: ${stdout}`);
+        //   console.error(`stderr: ${stderr}`);
+        //   // done(); // 完成 task
+        // })
+
+        // Step2.更新当前任务状态
+        stats(key, 'process', { ...setResultInfo([payload.name, key, taskType, 'process']) })
+        // Step3.显示当前执行命令
+        progress({ key, log: `\x1b[1;36m> Executing Deploy...\x1b[39m\n`, taskType })
+        await svnCommands(`svn log ${payload.deploySvnPath}`, { type, payload, key, taskType, targetDir }, { log, send, success, failure, progress, stats })
+        console.log('执行下一下')
+        // svnCommands(`svn delete ${payload.deploySvnPath} -m "前端 删除上一版本发布文件"`).then(() => {
+        //   progress({ key, log: `\x1b[1;32m> Svn update 【${targetDir}】 success.\x1b[39m\n`, taskType })
+        // }).catch(error => {
+        //   failure({ key, log: `\x1b[1;31m> Svn update  【${targetDir}】 failure!\x1b[39m\n`, taskType })
+        //   // log('update', { id: data._id, description: error.toString(), ...setResultInfo([payload.name, key, taskType, 'failure']) })
+        //   // stats(key, 'error', { errorInfo: error.toString(), ...setResultInfo([payload.name, key, taskType, 'failure']) })
+        // })
+        // try {
+        //
+        //   del([`${payload.deployFilePath}\\*`], { force: true });
+        // }
+        // catch (e) {
+        //   console.log('删除是否成功', e)
+        // }
+        // console.log('清空结果', deletedPaths)
+        // progress({ key, log: `\x1b[1;32m> Clear deployFilePath 【${targetDir}】 success.\x1b[39m\n`, taskType })
+        break;
+      // 构建并发布
       case '@@actions/BUILDAndDEPLOY':
+        runBuildOrDeploy('BUILD', { type, payload, key, taskType, targetDir }, { log, send, success, failure, progress, stats }).then(() => {
+          console.log('内部执行完成 才执行这些')
+        })
+        console.log('上面执行成功才执行下面')
         break;
       // 安装依赖包
       case '@@actions/INSTALL':
@@ -419,6 +493,7 @@ async function handleCoreData({ type, payload, key, taskType }, { log, send, suc
       case '@@tasks/log/clear':
         if (!existsSync(`./log/${taskType}.${key}.log`)) {
           // console.log('日志文件不存在')
+          failure({ key, done: false })
           return
         }
         writeFile(`./log/${taskType}.${key}.log`, '', err => {

@@ -98,14 +98,15 @@ export default {
     // 获取任务进程历史记录
     *get_tasksLogHistory({ payload }, { put, call }) {
       console.log('get_tasksLogHistory ==》 获取任务进程历史记录）', payload)
+      const { taskType, callback, log, dbPath, key } = payload;
       try {
-        const { taskType, callback, log, dbPath, key } = payload;
         const result = yield call(getTaskLogHistory, taskType, log, dbPath, key);
-        console.log('获取任务进程历史记录返回值', result)
+        console.log('@@tasks/log/history=》》result', result)
         callback && callback(result);
       }
       catch (e) {
-        console.log('获取任务进程历史记录报错', e)
+        console.log('@@tasks/log/history=》》error result', e)
+        callback && callback(e);
       }
       // yield put({
       //   type: 'updateWebpackStats',

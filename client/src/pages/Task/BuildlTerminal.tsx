@@ -50,7 +50,7 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
     }
   }
 
-  const clearLog = (callback)=> {
+  const clearLog = (callback) => {
     dispatch({
       type: `task/clear_tasksLogHistory`,
       payload: {
@@ -59,7 +59,7 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
         key: projectId,
         callback: ({ done }) => {
           if (!done) return;
-          // console.log('执行结果: done==>', done)
+          console.log('清空日志执行结果: done==>', done)
           const terminal = getTerminalRefIns('BUILD', projectId);
           if (done && terminal) {
             terminal.clear(); // 清空当前命令
@@ -74,7 +74,7 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
     const terminal = getTerminalRefIns('BUILD', projectId);
     if (terminal) {
       // 先清空当前日志
-      clearLog(()=> {
+      clearLog(() => {
         // terminal.write('\r\n\r\n'); // 清空当前命令
         send({
           type: `@@actions/${currentTask}`,
@@ -110,7 +110,7 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
         dbPath: filePath,
         key: projectId,
         callback: ({ log }) => {
-          setLog(log);
+          if (log) setLog(log);
         },
       },
     });

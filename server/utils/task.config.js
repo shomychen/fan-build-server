@@ -33,7 +33,7 @@ module.exports = {
       'success': '成功',
     }
   },
-  'BUILDAndDEPLOY' : {
+  'BUILDAndDEPLOY': {
     name: '部署与发布',
     states: {
       'init': '未执行',
@@ -50,9 +50,16 @@ module.exports = {
       'failure': '失败',
       'success': '成功',
     }
-  },
+  }
 }
-
+module.taskStates = () => {
+ return {
+   'init': '未执行',
+   'process': '进行中',
+   'failure': '失败',
+   'success': '成功',
+ }
+}
 module.taskArray = () => {
   return [
     {

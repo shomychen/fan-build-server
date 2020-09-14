@@ -118,11 +118,17 @@ const initPageSocket = (server) => {
       return logUpdateResut;
     };
 
-    // 更新当前任务状态
-    const stats = (key, status, result) => {
+    /**
+     * 更新当前任务状态
+     * @params {String} key 当前项目ID
+     * @params {String} status 任务状态：process/success/failure/init
+     * @params {String} result 任务状态相关显示文本参数
+     * @params {String} errorLog 错误日志提示（用于返回警告提示等）
+     *
+     */
+    const stats = (key, status, result, logInfo) => {
       const { taskType } = result;
-      const msg = `${chalk.gray(`[${key}]`)} ${taskType}`;
-      console.log('更新当前任务状态', msg); // 服务端控制台打包当前日志信息
+      console.log('更新当前任务状态', `${chalk.gray(`[${key}]`)} ${taskType}`); // 服务端控制台打包当前日志信息
       (async () => {
         result.id = key
         const json = await request('/api/project/taskUpdate', 'POST', result)
@@ -130,7 +136,8 @@ const initPageSocket = (server) => {
           type: '@@tasks/state/update',
           payload: {
             status,
-            result
+            result,
+            errorLog: (logInfo && logInfo.errorLog)
           },
         });
         console.log('接口获取事件=>>更新当前任务状态', json);

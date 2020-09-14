@@ -25,7 +25,7 @@ export default {
     }
   },
   'DEPLOY': {
-    name: '部署',
+    name: '发布',
     states: {
       'init': '未执行',
       'process': '进行中',

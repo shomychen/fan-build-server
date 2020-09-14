@@ -20,47 +20,33 @@ export async function render(oldRender): void {
     await initSocket({
       onMessage({ type, payload }) {
         // 任务相关执行事件 TODO。执行终端打印需要放到model内监听事件处理
-        /*  if (type.startsWith('@@actions')) {
-            const status = type.substring(type.lastIndexOf('/') + 1); // 执行状态有 ’/process','/success','/failure'结尾
-            console.log('推送action类型', type, '状态', status, '回传参数', payload)
-            const taskType = getResultTaskType(type.substring(0, type.lastIndexOf('/')))
-              console.log(taskType, '项目ID：',payload.key)
-            let terminal;
-            if (['TESTCOPY', 'BUILD', 'BUILDAndDEPLOY', 'DEPLOY'].indexOf(taskType) > -1) {
-              terminal = getTerminalRefIns('BUILD', payload.key)  // 判断推送至该项目的“构建发布的终端显示
-            } else {
-              terminal = getTerminalRefIns(taskType, payload.key) // 任务类型为 INSTALL
-            }
-            if (['progress', 'success', 'failure'].indexOf(status) > -1) {
-              if (status === 'success' || status === 'progress') {
-                console.log(status === 'success' ? '执行成功：success' : '命令执行中：progress', payload)
-                terminal && terminal.write(`\r\n ${payload.log.replace(/\n/g, '\r\n')}`)
-              }
-              if (status === 'failure') {
-                console.log('命令执行失败：failure', payload)
-                terminal && terminal.write(`\r\n\x1b[31m[ERROR]\x1b[39m ${payload.log.replace(/\n/g, '\r\n')}\n`)
-              }
-             /!* // 执行成功或失败
-              if (status === 'failure' || status === 'success') {
-                // 原来window.g_app._store 需要用 getDvaApp() 替换 TODO，状态更新调整至服务端更新，避免连接关闭
-                // getDvaApp()._store.dispatch({
-                //   type: 'task/updateRunTaskResult',
-                //   payload: payload.result,
-                // });
-                // const { taskTypeName, taskStateName, projectName } = payload.result;
-                // notification[status === 'success' ? 'success' : 'error']({
-                //   message: `${taskTypeName}${taskStateName}`,
-                //   description: `${projectName}项目任务执行结果`,
-                //   duration: 8
-                // })
-              }*!/
-            }
-            if (type.indexOf('/cancel') !== -1) {
-              console.log('执行取消相关操作，更新')
-            }
-          } else {
-            console.log('其他任务执行事件',type,payload)
+        if (type.startsWith('@@actions')) {
+          const status = type.substring(type.lastIndexOf('/') + 1); // 执行状态有 ’/process','/success','/failure'结尾
+          /* console.log('推送action类型', type, '状态', status, '回传参数', payload)
+         const taskType = getResultTaskType(type.substring(0, type.lastIndexOf('/')))
+           console.log(taskType, '项目ID：',payload.key)
+         let terminal;
+         if (['TESTCOPY', 'BUILD', 'BUILDAndDEPLOY', 'DEPLOY'].indexOf(taskType) > -1) {
+           terminal = getTerminalRefIns('BUILD', payload.key)  // 判断推送至该项目的“构建发布的终端显示
+         } else {
+           terminal = getTerminalRefIns(taskType, payload.key) // 任务类型为 INSTALL
+         }*/
+          /*   if (['progress', 'success', 'failure'].indexOf(status) > -1) {
+            if (status === 'success' || status === 'progress') {
+                 console.log(status === 'success' ? '执行成功：success' : '命令执行中：progress', payload)
+                 terminal && terminal.write(`\r\n ${payload.log.replace(/\n/g, '\r\n')}`)
+               }
+               if (status === 'failure') {
+                 console.log('命令执行失败：failure', payload)
+                 terminal && terminal.write(`\r\n\x1b[31m[ERROR]\x1b[39m ${payload.log.replace(/\n/g, '\r\n')}\n`)
+               }
           }*/
+          if (type.indexOf('/cancel') !== -1) {
+            console.log('执行取消相关操作，更新')
+          }
+        } else {
+          // console.log('其他非\'@@actions\'开头任务执行事件', type, payload)
+        }
       },
     });
     console.log('Init socket success')
@@ -81,7 +67,7 @@ export async function render(oldRender): void {
     // 监听任务状态更新
     listenRemote({
       type: '@@tasks/state/update',
-      onMessage: ({ result, status }) => {
+      onMessage: ({ result, status, errorLog }) => {
         console.log('监听 @@task/state/update', result, '返回状态：', status)
         // 更新 state 数据
         getDvaApp()._store.dispatch({
@@ -89,7 +75,9 @@ export async function render(oldRender): void {
           payload: { ...result },
         });
         const { taskTypeName, taskStateName, projectName, errorInfo } = result;
-        if (status !== 'process') {
+        if (status === 'init') {
+          if (errorLog) message.error(errorLog)
+        } else if (status !== 'process') {
           notification[status]({
             message: `${projectName} - ${taskTypeName}${taskStateName}`,
             description: status === 'error' ? errorInfo : `${projectName}项目任务执行结果`,

@@ -120,7 +120,7 @@ const InstallTerminal: React.FC<InstallProps> = (props) => {
         key: projectId,
         callback: ({ log }) => {
           // 设置日志初始值
-          setLog(log);
+         if (log) setLog(log);
         },
       },
     });
