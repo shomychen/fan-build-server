@@ -50,44 +50,38 @@ const initPageSocket = (server) => {
 
     function success(type, payload) {
       console.log('success 成功提示', type)
-      taskProcessLog(payload)
+      taskProcessLog(payload) // 更新并推送日志
       send({ type: `${type}/success`, payload });
     }
 
     function failure(type, payload) {
       console.log('failuclosere 失败提示', type)
-      taskProcessLog(payload)
+      taskProcessLog(payload) // 更新并推送日志
       send({ type: `${type}/failure`, payload });
     }
 
     function progress(type, payload) {
       console.log('执行中', type, payload.taskType)
-      taskProcessLog(payload)
+      taskProcessLog(payload) // 更新并推送日志
       send({ type: `${type}/progress`, payload });
     }
 
-    // 更新并推送日志
+    // 更新并推送日志,用于保存到日志文件并在客户端的终端进行打印
     const taskProcessLog = (payload) => {
       const { key, log, taskType } = payload;
       if (!taskType) return
       console.log("需要执行日志更新", payload)
-      if (['TESTCOPY', 'BUILD', 'BUILDAndDEPLOY', 'DEPLOY'].indexOf(taskType) > -1) {
-        payload.taskType = 'BUILD'  // 都归属于构建发布模块
-      }
       try {
-        if (!existsSync(`./log/${payload.taskType}.${key}.log`)) {
-          console.log('日志文件不存在，需要创建下新日志')
-        }
         let options = {
           flags: 'a', //
           encoding: 'utf8', // utf8编码
         }
-        let stderr = createWriteStream(`./log/${payload.taskType}.${key}.log`, options);
+        let logFileName = payload.taskType // 最终值只有'BUILD'与’INSTALL'
+        if (['TESTCOPY', 'BUILDAndDEPLOY', 'DEPLOY'].indexOf(taskType) > -1) logFileName = 'BUILD'  // 都归属于构建发布模块（在同一个页面内）
+        let stderr = createWriteStream(`./log/${logFileName}.${key}.log`, options);
         // 创建logger
         let logger = new console.Console(stderr);
-        // 真实项目中调用下面即可记录错误日志
-        logger.log(log);
-
+        logger.log(log); // 真实项目中调用下面即可记录错误日志
         send({
           type: '@@tasks/log/process', // 进程日志（还需要执行创建当前项目相关的日志文件）
           payload,
@@ -123,10 +117,10 @@ const initPageSocket = (server) => {
      * @params {String} key 当前项目ID
      * @params {String} status 任务状态：process/success/failure/init
      * @params {String} result 任务状态相关显示文本参数
-     * @params {String} errorLog 错误日志提示（用于返回警告提示等）
+     * @params {String} logInfo 错误日志提示（用于返回警告提示等）
      *
      */
-    const stats = (key, status, result, logInfo) => {
+    const updateStates = (key, status, result, logInfo) => {
       const { taskType } = result;
       console.log('更新当前任务状态', `${chalk.gray(`[${key}]`)} ${taskType}`); // 服务端控制台打包当前日志信息
       (async () => {
@@ -170,9 +164,8 @@ const initPageSocket = (server) => {
               success: success.bind(this, type),
               failure: failure.bind(this, type),
               progress: progress.bind(this, type),
-              stats
-            },
-            logs
+              updateStates
+            }
           );
         } else {
           console.log('返回另外一种监听事件，项目ID：', key, type)

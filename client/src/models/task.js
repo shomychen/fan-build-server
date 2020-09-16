@@ -15,9 +15,8 @@ const getTaskLogHistory = async (taskType, log = true, dbPath = '', key,) => awa
 
 
 const clearTaskLog = async (taskType, key,) => await callRemote({
-  type: '@@tasks/log/clear', // 获取任务进程历史记录详情，即以往的任务进程消息
-  payload: {
-  },
+  type: '@@tasks/log/clear', // 清空任务进程历史记录详情，即以往的任务进程消息
+  payload: {},
   key,
   taskType,
 });
@@ -59,10 +58,12 @@ export default {
             type: '@@tasks/log/process',
             onMessage: ({ taskType, log, key, payload }) => {
               console.log('监听 @@tasks/log/process', taskType, log, key, payload)
+              let getTaskType = taskType
+              if (['TESTCOPY', 'BUILDAndDEPLOY', 'DEPLOY'].indexOf(taskType) > -1) getTaskType = 'BUILD'  // 都归属于构建发布模块（在同一个页面内）
               dispatch({
                 type: 'writeLog',
                 payload: {
-                  taskType,
+                  taskType: getTaskType,
                   log,
                   key,
                 },
@@ -134,6 +135,7 @@ export default {
     // 更新日志
     *writeLog({ payload }, { select }) {
       const { taskType, log, key: projectKey } = payload;
+      console.log('更新日志了吧', payload)
       const modal = yield select(state => state.task);
       const key = modal && modal.listenTaskResult && modal.listenTaskResult.projectId;
       if (!key) {
@@ -143,7 +145,7 @@ export default {
       if (!terminal) {
         return;
       }
-      console.log('更新日志writeLog',  log)
+      console.log('更新日志writeLog', log)
       terminal.write(`\r\n${log.replace(/\n/g, '\r\n')}`);
     },
   },

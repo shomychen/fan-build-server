@@ -96,7 +96,7 @@ const Dashboard = connect(({ project, loading }) => ({
       <div className={styles.control}><Button type="primary" icon={<PlusOutlined />} onClick={() => handleCardAction('create')}>添加项目</Button></div>
     </div>
     <Spin spinning={queryLoading}>
-      <Row className={styles.projectList} gutter={20}>
+      <Row className={styles.projectList} gutter={[20, 20]}>
         {
           projectData.map(item =>
             <Col key={item._id} className={styles.item} md={12} lg={8} xl={6}>
@@ -176,12 +176,14 @@ const Dashboard = connect(({ project, loading }) => ({
           <Form.Item
             label={'项目名称'}
             name="name"
+            rules={[{ required: true, message: '请输入项目名称' }]}
           >
             <Input />
           </Form.Item>
           <Form.Item
             label={'项目目录'}
             name="filePath"
+            rules={[{ required: true, message: '请输入项目目录' }]}
           >
             <TextArea />
           </Form.Item>

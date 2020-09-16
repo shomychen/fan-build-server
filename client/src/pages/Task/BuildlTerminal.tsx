@@ -37,7 +37,7 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
     setCurrentTask(key)
     if (key === 'CANCEL') {
       send({
-        type: `@@actions/${'CANCEL'}`,
+        type: `@@actions/CANCEL`,
         payload: {
           ...data, // 里面有当前项目的目录路径
         },
@@ -110,6 +110,7 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
         dbPath: filePath,
         key: projectId,
         callback: ({ log }) => {
+          console.log('执行获取日志记录')
           if (log) setLog(log);
         },
       },
@@ -155,17 +156,11 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
           </>
         )}
       </Button>
-      <Button type={"primary"} onClick={() => handleControl(isDeployRunning ? 'CANCEL' : 'DEPLOY', '发布')} disabled={data.status !== '1' || isTaskRunning || isBuildRunning}>
-        {isDeployRunning ? (
-          <>
-            <PauseOutlined />
-            <span className={styles.runningText}>停止</span>
-          </>
-        ) : (
-          <>
-            <CaretRightOutlined /><span className={styles.runningText}>发布</span>
-          </>
-        )}</Button>
+      <Button type={"primary"}
+              onClick={() => handleControl(isDeployRunning ? 'CANCEL' : 'DEPLOY', '发布')}
+              disabled={data.status !== '1' || isTaskRunning || isBuildRunning || isDeployRunning}>
+        <CaretRightOutlined /><span className={styles.runningText}>发布</span>
+      </Button>
       <Button>预留菜单配置 </Button>
       <Button type={"primary"} onClick={() => handleControl('TESTCOPY', '测试')}>测试</Button>
       <Button type={"primary"} onClick={() => handleControl('CANCEL', '停止')}>停止</Button>
