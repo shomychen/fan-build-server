@@ -81,23 +81,21 @@ async function handleChildProcess(child, { progress, success, failure, updateSta
       if (progress) progress({ key, log: buffer.toString(), taskType })
     });
     child.on('exit', (code, signal) => {
-      // console.log(`子进程因收到信号 ${signal} 而终止`);
-      // console.log('runArgs', runArgs)
       delete proc[key]; // 删除当前项目处理中的进程
       const result = setResultInfo([payload.name, key, taskType, code !== 0 ? 'failure' : 'success'])
-      if (code !== 0) result.description = new Error(`用户操作停止，Command failed: ${npmClient} ${runArgs.join(' ')}`).toString()
+      if (code !== 0){
+        result.description = new Error(`用户操作停止，Command failed: ${npmClient} ${runArgs.join(' ')}`).toString()
+        result.errorInfo = new Error(`用户操作停止，Command failed: ${npmClient} ${runArgs.join(' ')}`).toString()
+      }
       log('update', { id: logId, ...result }); // 操作日志更新
       updateStates(key, code !== 0 ? 'error' : 'success', { ...result })
       if (code !== 0) {
-        failure({
-          key,
-          log: newError(`Command failed: ${npmClient} ${runArgs.join(' ')}`), taskType,
-        })
+        failure({ key, log: newError(`Command failed: ${npmClient} ${runArgs.join(' ')}`), taskType, })
         reject()
       } else {
         success({
           key,
-          log: `\r\n\x1b[1;32m> Process finished with exit code ${code}\x1b[39m\n\n`, taskType,
+          log: `\x1b[1;32m> Process finished with exit code ${code}\x1b[39m\n\n`, taskType,
         })
         resolve()
       }
@@ -197,9 +195,9 @@ function svnCommands(command, { type, payload, key, taskType, targetDir }, { log
 //  执行“构建”或“发布”任务
 async function runBuildOrDeploy(method, { type, payload, key, taskType, targetDir }, { log, send, success, failure, progress, updateStates }) {
   // if (method === '')
-  // const initResultInfo = setResultInfo([payload.name, key, taskType, 'init']);
-  // const processInfo = setResultInfo([payload.name, key, taskType, 'process']);
-  // const failureInfo = setResultInfo([payload.name, key, taskType, 'failure']);
+  const initResultInfo = setResultInfo([payload.name, key, taskType, 'init']);
+  const processInfo = setResultInfo([payload.name, key, taskType, 'process']);
+  const failureInfo = setResultInfo([payload.name, key, taskType, 'failure']);
   // const successInfo = setResultInfo([payload.name, key, taskType, 'success']);
   return new Promise((resolve, reject) => {
     (async () => {
@@ -207,18 +205,18 @@ async function runBuildOrDeploy(method, { type, payload, key, taskType, targetDi
       // TODO需要移除
       if (type === '@@actions/DEPLOY') {
         if (!existsSync(join(targetDir, payload.buildPath))) {
-          await updateStates(key, 'init', { ...setResultInfo([payload.name, key, taskType, 'init']) }, { errorLog: `部署目录不存在，请先执行构建！\n` }); // 任务状态设置为init
+          await updateStates(key, 'init', initResultInfo, { errorLog: `部署目录不存在，请先执行构建！\n` }); // 任务状态设置为init
           failure({ key, log: newError(`部署目录${join(targetDir, payload.buildPath)}不存在，请先执行构建！`), taskType })
           reject()
           return
         }
       }
       // Step1.创建操作日志
-      const buildLogInfo = await log('create', { ...setResultInfo([payload.name, key, taskType, 'process']) }, key); // 返回数据库数据
+      const buildLogInfo = await log('create', processInfo, key); // 返回数据库数据
       console.log('创建操作日志返回对应的ID', buildLogInfo.data)
       const { data } = buildLogInfo;
       // Step2.更新当前任务状态
-      await updateStates(key, 'process', { ...setResultInfo([payload.name, key, taskType, 'process']) })
+      await updateStates(key, 'process', processInfo)
       // Step3.打印显示当前执行命令
       progress({ key, log: `\x1b[1;36m> Executing ${'npm'} ${runArgs.join(' ')}...\x1b[39m\n`, taskType })
       // Step4.更新当前执行项目的SVN
@@ -229,23 +227,23 @@ async function runBuildOrDeploy(method, { type, payload, key, taskType, targetDi
           console.log('执行命令', runArgs, '当前是否已经存在任务对应的PID==>', proc[key] ? proc[key].pid : '')
           proc[key] = runCommand('npm', targetDir, runArgs)
           handleChildProcess(proc[key], { progress, success, failure, updateStates, log }, { npmClient: 'npm', runArgs, targetDir, key, payload, taskType, logId: data._id }).then(() => {
-            console.log('handleChildProcess =>>成功')
+            console.log('BUILD或ISNTALLhandleChildProcess =>>成功')
             resolve()
           }).catch((e) => {
-            console.log('handleChildProcess =>>报错', e)
+            console.log('BUILD或ISNTALLhandleChildProcess =>>报错', e)
             reject(e)
           });
         }
         catch (error) {
-          updateStates(key, 'error', { errorInfo: error.toString(), ...setResultInfo([payload.name, key, taskType, 'failure']) })
+          updateStates(key, 'error', { errorInfo: error.toString(), ...failureInfo})
           failure({ key, log: error.toString(), taskType })
-          log('update', { id: data._id, description: error.toString(), ...setResultInfo([payload.name, key, taskType, 'failure'],) })
+          log('update', { id: data._id, description: error.toString(), ...failureInfo })
           reject(error)
         }
       }).catch(error => {
-        updateStates(key, 'error', { errorInfo: error, ...setResultInfo([payload.name, key, taskType, 'failure']) })
+        updateStates(key, 'error', { errorInfo: error, ...failureInfo })
         failure({ key, log: error, taskType })
-        log('update', { id: data._id, description: error, ...setResultInfo([payload.name, key, taskType, 'failure']) })
+        log('update', { id: data._id, description: error, ...failureInfo })
         reject(error)
       })
     })()
@@ -271,6 +269,7 @@ async function handleCoreData({ type, payload, key, taskType }, { log, send, suc
   // console.log('调用相关执行action - 参数', payload)
   const dataParams = { type, payload, key, taskType }
   const methodParams = { log, send, success, failure, progress, updateStates }
+
   if (type.startsWith('@@actions')) {
     let targetDir = payload.filePath;
     let npmClient = payload.npmClient || 'npm'
@@ -504,19 +503,23 @@ async function handleCoreData({ type, payload, key, taskType }, { log, send, suc
         // Step2.更新当前任务状态
         updateStates(key, 'process', { ...setResultInfo([payload.name, key, taskType, 'process']) })
         // Step3.显示当前执行命令
-        progress({ key, log: `\r\n\x1b[1;36m> Executing ${npmClient} ${getNpmClientArgus(npmClient).join(' ')}...\x1b[39m\n` })
+        progress({ key, log: `\x1b[1;36m> Executing ${npmClient} ${getNpmClientArgus(npmClient).join(' ')}...\x1b[39m\n` , taskType} )
         try {
           // 重装 node_modules 时先清空，否则可能会失败
-          progress({ key, log: 'Cleaning node_modules...\n' })
+          progress({ key, log: 'Cleaning node_modules...\n' , taskType} )
           await cleanNodeModules(targetDir).then(() => {
-
-            console.log('清空目录成功')
+            console.log('' +
+              '')
           });
-          progress({ key, log: 'Cleaning node_modules success.\n' })
-          // runArgs = getNpmClientArgus(npmClient)
-          // proc[key] = runCommand(npmClient, targetDir, runArgs)
-          // await handleChildProcess(proc[key], { progress, success, failure, updateStates, log },
-          //   { npmClient, runArgs, key, payload, taskType, logId: installLogInfo.data ? installLogInfo.data._id : undefined });
+          progress({ key, log: 'Cleaning node_modules success.\n' , taskType} )
+          runArgs = getNpmClientArgus(npmClient)
+          proc[key] = runCommand(npmClient, targetDir, runArgs)
+          handleChildProcess(proc[key],methodParams,
+            { npmClient, runArgs, key, payload, taskType, logId: installLogInfo.data ? installLogInfo.data._id : undefined }).then(() => {
+            console.log('INSTALL==>>handleChildProcess =>>成功')
+          }).catch((e) => {
+            console.log('INSTALL==>>handleChildProcess =>>报错', e)
+          });
         }
         catch (error) {
           failure({ key, log: error.toString() });
@@ -537,7 +540,8 @@ async function handleCoreData({ type, payload, key, taskType }, { log, send, suc
         // Step3.显示当前执行命令
         // progress({ key, log: `\n\x1b[1;36m> Executing ${npmClient} ${runArgs.join(' ')}...\x1b[39m\n`, taskType })
         try {
-          await handleChildProcess(proc[key], { progress, success, failure, updateStates, log },
+          // { ...dataParams, targetDir }, methodParams { progress, success, failure, updateStates, log }
+          await handleChildProcess(proc[key], methodParams,
             { npmClient, runArgs, key, payload, taskType, logId: testLogInfo.data ? testLogInfo.data._id : undefined });
         }
         catch (error) {

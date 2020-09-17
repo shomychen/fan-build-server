@@ -118,9 +118,9 @@ const InstallTerminal: React.FC<InstallProps> = (props) => {
         log: true,
         dbPath: filePath,
         key: projectId,
-        callback: ({ log }) => {
+        callback: ({ log, key}) => {
           // 设置日志初始值
-         if (log) setLog(log);
+          if (log && key === projectId) setLog(log);
         },
       },
     });

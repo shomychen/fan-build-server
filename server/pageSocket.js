@@ -5,8 +5,29 @@ const { createWriteStream, existsSync } = require('fs');
 const chalk = require('chalk');
 const request = require('./utils/request');
 const { handleCoreData, procGroup } = require('./runTask');
+const taskConfig = require("./utils/task.config");
 const conns = {}; // 存储多个连接，并进行保存
 let logs = []; // 存储日志信息
+function setStateInfo([name, key, type, state]) {
+  return {
+    projectName: name, // 项目名称
+    projectId: key,  // 项目ID
+    id: key,
+    taskType: type,  // 任务类型(BUILD\DEPLOY\INSTALL)
+    taskTypeName: taskConfig[type] ? taskConfig[type].name : '',
+    taskState: state, // 任务状态(process\success\failure)
+    taskStateName: taskConfig[type].states ? taskConfig[type].states[state] : '',
+  }
+}
+
+const iing = ([name, key, type, state]) => {
+  return {
+    projectName: name, // 项目名称
+    projectId: key,  // 项目ID
+  }
+}
+
+
 const initPageSocket = (server) => {
   const sockjs_echo = sockjs.createServer();
 
@@ -67,8 +88,8 @@ const initPageSocket = (server) => {
     // 更新并推送日志,用于保存到日志文件并在客户端的终端进行打印
     const taskProcessLog = (payload) => {
       const { key, log, taskType } = payload;
+      console.log("需要执行日志更新", payload, taskType)
       if (!taskType) return
-      console.log("需要执行日志更新", payload)
       try {
         let options = {
           flags: 'a', //
@@ -119,8 +140,15 @@ const initPageSocket = (server) => {
      *
      */
     const updateStates = (key, status, result, logInfo) => {
-      const { taskType } = result;
+      const { projectName, taskType, taskState } = result;
+      console.log('参数包含projectName,key,taskType,taskState', key, status, result, logInfo)
+      // const result = {
+      //   ...setStateInfo([projectName, key, taskType, taskState]),
+      //   ...params
+      // }
+      // console.log('打印个方法返回值', result)
       console.log('更新当前任务状态', `${chalk.gray(`[${key}]`)} ${taskType}`); // 服务端控制台打包当前日志信息
+      // console.log('updateStates==>>参数结果', setStateInfo)
       (async () => {
         result.id = key
         const json = await request('/api/project/taskUpdate', 'POST', result) // 更新项目详情信息
@@ -162,7 +190,7 @@ const initPageSocket = (server) => {
               success: success.bind(this, type),
               failure: failure.bind(this, type),
               progress: progress.bind(this, type),
-              updateStates
+              updateStates,
             }
           );
         } else {
