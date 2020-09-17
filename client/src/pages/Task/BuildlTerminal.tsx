@@ -109,9 +109,9 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
         log: true,
         dbPath: filePath,
         key: projectId,
-        callback: ({ log }) => {
+        callback: ({ log,key }) => {
           console.log('执行获取日志记录')
-          if (log) setLog(log);
+          if (log && key === projectId) setLog(log);
         },
       },
     });

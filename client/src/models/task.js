@@ -133,15 +133,11 @@ export default {
       // });
     },
     // 更新日志
-    *writeLog({ payload }, { select }) {
+    *writeLog({ payload }, {  }) {
       const { taskType, log, key: projectKey } = payload;
       console.log('更新日志了吧', payload)
-      const modal = yield select(state => state.task);
-      const key = modal && modal.listenTaskResult && modal.listenTaskResult.projectId;
-      if (!key) {
-        return;
-      }
-      let terminal = getTerminalRefIns(taskType, projectKey) // 任务类型为 INSTALL
+      let terminal = getTerminalRefIns(taskType, projectKey) // 任务类型为 INSTALL/BUILD
+      console.log('更新日志了吧++》》可以打印了啊', terminal)
       if (!terminal) {
         return;
       }

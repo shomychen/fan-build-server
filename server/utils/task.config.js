@@ -1,8 +1,5 @@
 // 任务类型及状态值
 module.exports = {
-  'TESTCOPY': {
-    name: '测试拷贝',
-  },
   'DEFAULT': {
     name: '无任务',
   },
@@ -52,15 +49,15 @@ module.exports = {
     }
   }
 }
-module.taskStates = () => {
+exports.taskStates = () => {
  return {
    'init': '未执行',
-   'process': '进行中',
+   'process': '执行中',
    'failure': '失败',
    'success': '成功',
  }
 }
-module.taskArray = () => {
+exports.taskArray = () => {
   return [
     {
       name: '无任务',

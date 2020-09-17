@@ -50,14 +50,14 @@ const InstallTerminal: React.FC<InstallProps> = (props) => {
     }
     if (key === 'CANCEL') {
       send({
-        type: `@@actions/${key}`,
+        type: `@@actions/CANCEL`,
         payload: {
           ...data, // 里面有当前项目的目录路径
         },
         key: projectId,
         taskType: 'INSTALL'
       });
-      onAction && onAction('CANCEL')
+      // onAction && onAction('CANCEL')
     }
   }
 

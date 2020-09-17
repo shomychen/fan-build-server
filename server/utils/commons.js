@@ -2,6 +2,7 @@ const fs = require('fs-extra');
 const path = require('path');
 const tools = require('./tools.js');
 const sha1 = require('sha1'); // 密码加密
+const iconv = require('iconv-lite'); // 转换控制台乱码
 // const logModel = require('../models/log.js');
 // const projectModel = require('../models/project.js');
 // const interfaceColModel = require('../models/interfaceCol.js');
@@ -352,4 +353,20 @@ exports.toLowerLine = (str) => {
     temp = temp.slice(1);
   }
   return temp;
+}
+
+// 创建报错日志
+exports.newError = (tips)=> {
+  return new Error(`\x1b[31m${tips}\x1b[39m\n`).toString()
+}
+
+
+/*
+ * 转换控制台显示乱码
+ * @params {string} message 需要转换的文本
+ * */
+const encoding = 'cp936';
+const binaryEncoding = 'binary';
+exports.iconvDecode = (message)=> {
+  return iconv.decode(Buffer.from(message, binaryEncoding), encoding)
 }

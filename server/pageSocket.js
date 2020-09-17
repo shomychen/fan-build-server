@@ -3,9 +3,7 @@ const { createWriteStream, existsSync } = require('fs');
 // const get  = require( 'lodash/get');
 // const os = require('os');
 const chalk = require('chalk');
-const fetch = require('node-fetch');
 const request = require('./utils/request');
-const requestFetch = require('./utils/fetchRequest');
 const { handleCoreData, procGroup } = require('./runTask');
 const conns = {}; // 存储多个连接，并进行保存
 let logs = []; // 存储日志信息
@@ -125,7 +123,7 @@ const initPageSocket = (server) => {
       console.log('更新当前任务状态', `${chalk.gray(`[${key}]`)} ${taskType}`); // 服务端控制台打包当前日志信息
       (async () => {
         result.id = key
-        const json = await request('/api/project/taskUpdate', 'POST', result)
+        const json = await request('/api/project/taskUpdate', 'POST', result) // 更新项目详情信息
         send({
           type: '@@tasks/state/update',
           payload: {

@@ -72,7 +72,7 @@ export async function render(oldRender): void {
         // 更新 state 数据
         getDvaApp()._store.dispatch({
           type: 'task/updateRunTaskResult',
-          payload: { ...result },
+          payload: { ...result},
         });
         const { taskTypeName, taskStateName, projectName, errorInfo } = result;
         if (status === 'init') {
@@ -80,7 +80,7 @@ export async function render(oldRender): void {
         } else if (status !== 'process') {
           notification[status]({
             message: `${projectName} - ${taskTypeName}${taskStateName}`,
-            description: status === 'error' ? errorInfo : `${projectName}项目任务执行结果`,
+            description: status === 'error' ? errorInfo : ``,
             duration: 8
           })
         }
