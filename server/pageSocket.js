@@ -140,13 +140,12 @@ const initPageSocket = (server) => {
      *
      */
     const updateStates = (key, status, result, logInfo) => {
-      const { projectName, taskType, taskState } = result;
+      const { taskType } = result;
       console.log('参数包含projectName,key,taskType,taskState', key, status, result, logInfo)
       // const result = {
       //   ...setStateInfo([projectName, key, taskType, taskState]),
       //   ...params
       // }
-      // console.log('打印个方法返回值', result)
       console.log('更新当前任务状态', `${chalk.gray(`[${key}]`)} ${taskType}`); // 服务端控制台打包当前日志信息
       // console.log('updateStates==>>参数结果', setStateInfo)
       (async () => {

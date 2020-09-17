@@ -9,7 +9,16 @@ const request = require('./utils/request');
 const { newError, iconvDecode } = require('./utils/commons');
 const { copyFiles, existToDest } = require('./utils/copyAndDest');
 
-
+function setResultInfo([name, key, type, state]) {
+  return {
+    projectName: name, // 项目名称
+    projectId: key,  // 项目ID
+    taskType: type,  // 任务类型(BUILD\DEPLOY\INSTALL)
+    taskTypeName: taskConfig[type] ? taskConfig[type].name : '',
+    taskState: state, // 任务状态(process\success\failure)
+    taskStateName: taskConfig[type].states ? taskConfig[type].states[state] : '',
+  }
+}
 let proc = {}; // 当前执行的进程 （按项目ID分）
 /**
  *
@@ -83,23 +92,19 @@ async function handleChildProcess(child, { progress, success, failure, updateSta
     child.on('exit', (code, signal) => {
       delete proc[key]; // 删除当前项目处理中的进程
       const result = setResultInfo([payload.name, key, taskType, code !== 0 ? 'failure' : 'success'])
-      if (code !== 0){
-        result.description = new Error(`用户操作停止，Command failed: ${npmClient} ${runArgs.join(' ')}`).toString()
-        result.errorInfo = new Error(`用户操作停止，Command failed: ${npmClient} ${runArgs.join(' ')}`).toString()
+      if (code !== 0) {
+        result.description = new Error(`用户操作中止，Command failed: ${npmClient} ${runArgs.join(' ')}`).toString()
+        result.errorInfo = new Error(`用户操作中止，Command failed: ${npmClient} ${runArgs.join(' ')}`).toString()
       }
       log('update', { id: logId, ...result }); // 操作日志更新
-      updateStates(key, code !== 0 ? 'error' : 'success', { ...result })
+      updateStates(key, code !== 0 ? 'error' : 'success', { ...result }) // 任务状态更新
       if (code !== 0) {
         failure({ key, log: newError(`Command failed: ${npmClient} ${runArgs.join(' ')}`), taskType, })
         reject()
       } else {
-        success({
-          key,
-          log: `\x1b[1;32m> Process finished with exit code ${code}\x1b[39m\n\n`, taskType,
-        })
+        success({ key, log: `\x1b[1;32m> Process finished with exit code ${code}\x1b[39m\n\n`, taskType, })
         resolve()
       }
-      // code !== 0 ? opts.onFailed(new Error(`command failed: ${npmClient} ${runArgs.join(' ')}`).toString()) : opts.onSuccess(code);
     });
     // // 销毁进程
     process.on('exit', () => {
@@ -122,24 +127,6 @@ const getNpmClientArgus = (npmClient) => {
   return args
 }
 
-function setResultInfo([name, key, type, state]) {
-  return {
-    projectName: name, // 项目名称
-    projectId: key,  // 项目ID
-    taskType: type,  // 任务类型(BUILD\DEPLOY\INSTALL)
-    taskTypeName: taskConfig[type] ? taskConfig[type].name : '',
-    taskState: state, // 任务状态(process\success\failure)
-    taskStateName: taskConfig[type].states ? taskConfig[type].states[state] : '',
-  }
-}
-
-
-function setTaskState([name, key, type, state]) {
-  return {
-    taskState: state, // 任务状态(process\success\failure)
-    taskStateName: taskConfig[type].states ? taskConfig[type].states[state] : '',
-  }
-}
 
 // 重装 node_modules 时先清空，否则可能会失败
 async function cleanNodeModules(targetDir) {
@@ -179,9 +166,10 @@ function svnCommands(command, { type, payload, key, taskType, targetDir }, { log
     exec(command, { encoding: 'binary' }, (err, stdout, stderr) => {
       if (err) {
         const error = iconvDecode(err.toString()) // 转换乱码文本
-        updateStates(key, 'error', { errorInfo: error, ...setResultInfo([payload.name, key, taskType, 'failure']) })
+        const failResult = setResultInfo([payload.name, key, taskType, 'failure'])
+        updateStates(key, 'error', { errorInfo: error, ...failResult })
         failure({ key, log: error, taskType })
-        log('update', { id: data._id, description: error, ...setResultInfo([payload.name, key, taskType, 'failure']) })
+        log('update', { id: data._id, description: error, ...failResult })
         reject(err)
       }
       if (progress) progress({ key, log: iconvDecode(stdout), taskType })
@@ -205,7 +193,7 @@ async function runBuildOrDeploy(method, { type, payload, key, taskType, targetDi
       // TODO需要移除
       if (type === '@@actions/DEPLOY') {
         if (!existsSync(join(targetDir, payload.buildPath))) {
-          await updateStates(key, 'init', initResultInfo, { errorLog: `部署目录不存在，请先执行构建！\n` }); // 任务状态设置为init
+          updateStates(key, 'init', initResultInfo, { errorLog: `部署目录不存在，请先执行构建！\n` }); // 任务状态设置为init
           failure({ key, log: newError(`部署目录${join(targetDir, payload.buildPath)}不存在，请先执行构建！`), taskType })
           reject()
           return
@@ -216,31 +204,26 @@ async function runBuildOrDeploy(method, { type, payload, key, taskType, targetDi
       console.log('创建操作日志返回对应的ID', buildLogInfo.data)
       const { data } = buildLogInfo;
       // Step2.更新当前任务状态
-      await updateStates(key, 'process', processInfo)
+      updateStates(key, 'process', processInfo)
       // Step3.打印显示当前执行命令
       progress({ key, log: `\x1b[1;36m> Executing ${'npm'} ${runArgs.join(' ')}...\x1b[39m\n`, taskType })
       // Step4.更新当前执行项目的SVN
       updateProjectSvn(targetDir).then((stdout, stderr) => {
-        console.log('Step4.更新当前执行项目的SVN ==> stdout', stdout)
+        // console.log('Step4.更新当前执行项目的SVN ==> stdout', stdout)
         progress({ key, log: `\x1b[1;32m> Svn update 【${targetDir}】 success.\x1b[39m\n`, taskType }); // 打印SVN更新成功提示
-        try {
-          console.log('执行命令', runArgs, '当前是否已经存在任务对应的PID==>', proc[key] ? proc[key].pid : '')
-          proc[key] = runCommand('npm', targetDir, runArgs)
-          handleChildProcess(proc[key], { progress, success, failure, updateStates, log }, { npmClient: 'npm', runArgs, targetDir, key, payload, taskType, logId: data._id }).then(() => {
-            console.log('BUILD或ISNTALLhandleChildProcess =>>成功')
-            resolve()
-          }).catch((e) => {
-            console.log('BUILD或ISNTALLhandleChildProcess =>>报错', e)
-            reject(e)
-          });
-        }
-        catch (error) {
-          updateStates(key, 'error', { errorInfo: error.toString(), ...failureInfo})
-          failure({ key, log: error.toString(), taskType })
-          log('update', { id: data._id, description: error.toString(), ...failureInfo })
-          reject(error)
-        }
+        proc[key] = runCommand('npm', targetDir, runArgs)
+        return handleChildProcess(proc[key], { progress, success, failure, updateStates, log }, { npmClient: 'npm', runArgs, targetDir, key, payload, taskType, logId: data._id })/*.then(() => {
+          console.log('BUILD或ISNTALLhandleChildProcess =>>成功')
+          resolve()
+        }).catch((e) => {
+          console.log('BUILD或ISNTALLhandleChildProcess =>>报错', e)
+          reject(e)
+        });*/
+      }).then(()=> {
+        console.log('BUILD或ISNTALLhandleChildProcess =>>成功')
+        resolve()
       }).catch(error => {
+        console.log('BUILD或ISNTALLhandleChildProcess =>>报错', e)
         updateStates(key, 'error', { errorInfo: error, ...failureInfo })
         failure({ key, log: error, taskType })
         log('update', { id: data._id, description: error, ...failureInfo })
@@ -293,14 +276,13 @@ async function handleCoreData({ type, payload, key, taskType }, { log, send, suc
     switch (type) {
       case '@@actions/BUILD':  // 构建
         runBuildOrDeploy('BUILD', { ...dataParams, targetDir }, methodParams).then(() => {
-          console.log('成功后执行=>>isRunning')
+          console.log('构建成功后执行=>>isRunning')
         }).catch(e => {
-          console.log(e, '失败后执行')
+          console.log(e, '构建成功失败后执行')
         })
         break;
       // 部署/发布
       case '@@actions/DEPLOY':
-
         runBuildOrDeploy('DEPLOY', { ...dataParams, targetDir: payload.filePath }, methodParams).then(() => {
           console.log('==>执行部署成功后执行')
         }).catch(e => {
@@ -312,7 +294,7 @@ async function handleCoreData({ type, payload, key, taskType }, { log, send, suc
         const patchVersion = versionArg.join('.');
         // Step1. 判断目录是否存在
         if (!existsSync(join(targetDir, payload.buildPath))) {
-         await updateStates(key, 'init', { ...setResultInfo([payload.name, key, taskType, 'init']) }, { errorLog: `部署文件目录不存在，请先执行构建！` })
+          await updateStates(key, 'init', { ...setResultInfo([payload.name, key, taskType, 'init']) }, { errorLog: `部署文件目录不存在，请先执行构建！` })
           return
         }
         // Step2.创建操作日志
@@ -345,7 +327,7 @@ async function handleCoreData({ type, payload, key, taskType }, { log, send, suc
             desc: '复制构建目录文件到部署目录',
             func: async () => {
               if (!existsSync(payload.deployFilePath)) {
-               await updateStates(key, 'init', { ...setResultInfo([payload.name, key, 'BUILD', 'init']) }, { errorLog: `部署站点目录不存在，请确认是否载入资源到本地！` })
+                await updateStates(key, 'init', { ...setResultInfo([payload.name, key, 'BUILD', 'init']) }, { errorLog: `部署站点目录不存在，请确认是否载入资源到本地！` })
                 return
               }
               // 需要复制文件到指定目录
@@ -381,7 +363,6 @@ async function handleCoreData({ type, payload, key, taskType }, { log, send, suc
             command: `svn ci -m "更新版本控制 v${patchVersion}" ${payload.filePath}\\package.json`
           },
         }
-
         const stepsCommands = [
           {
             value: 'SubStep1',
@@ -408,7 +389,7 @@ async function handleCoreData({ type, payload, key, taskType }, { log, send, suc
             desc: '复制构建目录文件到部署目录',
             func: async () => {
               if (!existsSync(payload.deployFilePath)) {
-              await  updateStates(key, 'init', { ...setResultInfo([payload.name, key, 'BUILD', 'init']) }, { errorLog: `部署站点目录不存在，请确认是否载入资源到本地！` })
+                await updateStates(key, 'init', { ...setResultInfo([payload.name, key, 'BUILD', 'init']) }, { errorLog: `部署站点目录不存在，请确认是否载入资源到本地！` })
                 return
               }
               // 需要复制文件到指定目录
@@ -463,36 +444,17 @@ async function handleCoreData({ type, payload, key, taskType }, { log, send, suc
         })
         log('update', { id: data._id, ...successResult }); // 操作日志更新
         //  --/end执行成功
-        /*  await svnCommands(comDelete, { ...dataParams, targetDir }, methodParams, data).then(() => {
-            progress({ key, log: `\x1b[1;32m> Svn delete 【${payload.deploySvnPath}】 success.\x1b[39m\n`, taskType })
-          }).catch(error => {
-            failure({ key, log: `\x1b[1;31m> Svn update  【${payload.deploySvnPath}】 failure!\x1b[39m\n`, taskType })
-            // log('update', { id: data._id, description: error.toString(), ...setResultInfo([payload.name, key, taskType, 'failure']) })
-            // updateStates(key, 'error', { errorInfo: error.toString(), ...setResultInfo([payload.name, key, taskType, 'failure']) })
-          })*/
-        // try {
-        //
-        //   del([`${payload.deployFilePath}\\*`], { force: true });
-        // }
-        // catch (e) {
-        //   console.log('删除是否成功', e)
-        // }
-        // console.log('清空结果', deletedPaths)
-        // progress({ key, log: `\x1b[1;32m> Clear deployFilePath 【${targetDir}】 success.\x1b[39m\n`, taskType })
         break;
       // 构建并发布
       case '@@actions/BUILDAndDEPLOY':
         runBuildOrDeploy('BUILD', { ...dataParams, targetDir }, methodParams).then(() => {
-          console.log('成功后执行=>>isRunning')
-          runBuildOrDeploy('DEPLOY', { ...dataParams, targetDir: payload.filePath }, methodParams).then(() => {
-            console.log('==>执行部署成功后执行')
-          }).catch(e => {
-            console.log('==>执行部署成功失败后执行', e)
-          })
+          console.log('构建成功后执行=>>')
+          return runBuildOrDeploy('DEPLOY', { ...dataParams, targetDir: payload.filePath }, methodParams)
+        }).then(() => {
+          console.log('==>执行部署成功后执行')
         }).catch(e => {
-          console.log('==>失败后执行', e)
+          console.log('==>执行构建或部署失败后执行', e)
         })
-        console.log('==>==>上面部署与发布成功后才执行这条')
         break;
       // 安装依赖包
       case '@@actions/INSTALL':
@@ -503,18 +465,18 @@ async function handleCoreData({ type, payload, key, taskType }, { log, send, suc
         // Step2.更新当前任务状态
         updateStates(key, 'process', { ...setResultInfo([payload.name, key, taskType, 'process']) })
         // Step3.显示当前执行命令
-        progress({ key, log: `\x1b[1;36m> Executing ${npmClient} ${getNpmClientArgus(npmClient).join(' ')}...\x1b[39m\n` , taskType} )
+        progress({ key, log: `\x1b[1;36m> Executing ${npmClient} ${getNpmClientArgus(npmClient).join(' ')}...\x1b[39m\n`, taskType })
         try {
           // 重装 node_modules 时先清空，否则可能会失败
-          progress({ key, log: 'Cleaning node_modules...\n' , taskType} )
+          progress({ key, log: 'Cleaning node_modules...\n', taskType })
           await cleanNodeModules(targetDir).then(() => {
             console.log('' +
               '')
           });
-          progress({ key, log: 'Cleaning node_modules success.\n' , taskType} )
+          progress({ key, log: 'Cleaning node_modules success.\n', taskType })
           runArgs = getNpmClientArgus(npmClient)
           proc[key] = runCommand(npmClient, targetDir, runArgs)
-          handleChildProcess(proc[key],methodParams,
+          handleChildProcess(proc[key], methodParams,
             { npmClient, runArgs, key, payload, taskType, logId: installLogInfo.data ? installLogInfo.data._id : undefined }).then(() => {
             console.log('INSTALL==>>handleChildProcess =>>成功')
           }).catch((e) => {
