@@ -176,8 +176,6 @@ function svnCommands(command, { type, payload, key, taskType, targetDir }, { log
       resolve(stdout, stderr)
     })
   })
-
-
 }
 
 //  执行“构建”或“发布”任务
@@ -283,12 +281,14 @@ async function handleCoreData({ type, payload, key, taskType }, { log, send, suc
         break;
       // 部署/发布
       case '@@actions/DEPLOY':
+        // 方法一：
         runBuildOrDeploy('DEPLOY', { ...dataParams, targetDir: payload.filePath }, methodParams).then(() => {
           console.log('==>执行部署成功后执行')
         }).catch(e => {
           console.log('==>执行部署成功失败后执行', e)
         })
-        return
+        // return
+        // 方法二：
         const versionArg = pkg.version.split('.'); // 获取版本号
         versionArg.splice(2, 1, Number(versionArg[2]) + 1) // 版本号新增1
         const patchVersion = versionArg.join('.');
@@ -429,7 +429,7 @@ async function handleCoreData({ type, payload, key, taskType }, { log, send, suc
           },
         ]
         const testLog = `svn log ${payload.deploySvnPath}\\dd` // 删除SVN命令
-        await svnCommands(testLog, { ...dataParams, targetDir }, methodParams, data).then((stdout, stderr) => {
+        svnCommands(testLog, { ...dataParams, targetDir }, methodParams, data).then((stdout, stderr) => {
           console.log('stdout, stderr', stdout, stderr)
           progress({ key, log: `\x1b[1;32m> ST delete 【${payload.deploySvnPath}】 success.\x1b[39m\n`, taskType })
         }).catch(error => {
