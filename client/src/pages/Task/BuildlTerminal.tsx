@@ -135,11 +135,11 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
       <span>{title}</span>
       {/*<span className={'text-info'}>当前任务：{data.taskType}当前进度{data.taskState} </span>*/}
       {data.status !== '1' && <span className={'text-warning'} style={{ marginLeft: '5px', fontSize: '12px' }}>请先完善项目配置信息</span>}
-      <Steps size="small" current={1} className={styles.actionBarStep}>
+     {/* <Steps size="small" current={1} className={styles.actionBarStep}>
         <Step title="构建中" />
         <Step title="发布中" />
         <Step title="部署完成" />
-      </Steps>
+      </Steps>*/}
     </div>
 
     <Space className={styles.actionBar}>
@@ -161,10 +161,14 @@ const BuildTerminal: React.FC<CodeProps> = (props) => {
               disabled={data.status !== '1' || isTaskRunning || isBuildRunning || isDeployRunning}>
         <CaretRightOutlined /><span className={styles.runningText}>发布</span>
       </Button>
-      <Button>预留菜单配置 </Button>
+     {/* <Button>预留菜单配置 </Button>
       <Button type={"primary"} onClick={() => handleControl('TESTCOPY', '测试')}>测试</Button>
-      <Button type={"primary"} onClick={() => handleControl('CANCEL', '停止')}>停止</Button>
-      <Button type={"primary"} onClick={() => handleControl('BUILDAndDEPLOY', '构建并发布')} disabled={isBuildRunning || data.status !== '1'}><CaretRightOutlined />预留 构建并发布</Button>
+      <Button type={"primary"} onClick={() => handleControl('CANCEL', '停止')}>停止</Button>  */}
+      <Button type={"primary"}
+              onClick={() => handleControl('BUILDAndDEPLOY', '构建并发布')}
+              disabled={isBuildRunning || data.status !== '1'}
+      >
+        <CaretRightOutlined />预留 构建并发布</Button>
     </Space>
     <Terminal
       defaultValue={log}
